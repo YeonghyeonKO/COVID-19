@@ -1,0 +1,1149 @@
+---
+title: "(20-1) Regression Analysis - COVID-19"
+author : "고영현 (2014-19984)"
+date: '2020-06-13'
+output :
+  html_document:
+    theme: journal
+---
+
+<br>
+<br>
+
+
+```{r setup, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(knitr)
+library(nls2)
+library(segmented)
+
+setwd("C:\\Users\\1234\\Desktop\\고영현\\수업\\2020년\\2020-1\\회귀분석 및 실습\\실습 및 과제\\코로나 실습")
+
+COVID_19 <- read.csv("COVID-19 Cases.csv")
+
+```
+
+
+<br>
+<br>
+
+### 1.	Using the confirmed data of Brazil, analyze the below.
+
+<br>
+
+#### (1-1) 해당 국가에 대하여 최근 5/31일까지의 새로운 자료를 다운 받을 것.
+
+```{r}
+
+# 필요한 col뽑기
+corona_raw <- COVID_19 %>% 
+  select(1, 3:5, 7) %>%
+  rename(Case_Type = 癤풠ase_Type) %>%
+  group_by(Country_Region, Date, Case_Type) %>%
+  summarise(Cases = sum(Cases)) %>%
+  ungroup()
+
+# 신규확진자 구하기
+corona <- corona_raw %>%
+  mutate(Date = as.Date(corona_raw$Date, '%m/%d/%Y')) %>%
+  filter(Case_Type == "Confirmed") %>%
+  arrange(Country_Region, Date) %>%
+  mutate(Days_after_First_Case = rep(0:133, 187),
+         Difference = Cases - lag(Cases, n = 1, default = 0))
+
+# difference 끝지점 예외 처리
+for(i in 0:186){
+  corona$Difference[134*i + 1] = corona$Cases[134*i + 1]
+}
+
+Brazil <- corona %>%
+  filter(Country_Region == "Brazil") %>%
+  slice(1:131)
+
+# 확진자가 출현했을 시점부터
+Brazil <- Brazil[Brazil$Cases!=0,]
+
+
+# 2월 26일부터 4월 19일까지의 데이터를 training set
+# 4월 20일부터 5월 31일까지의 데이터를 validation set
+Brazil_train <- Brazil[1:54,]; Brazil_valid <- Brazil[55:96,]
+
+
+```
+
+
+<br>
+
+#### (1-2)	1차 분석 날짜인 4/19일까지 자료를 이용하여 예측한 Logistic, Bertalanffy, Gompertz model의 모형 결과로부터 5/31일까지의 일별 예측값을 구할 것
+
+```{r}
+X <- Brazil_train$Days_after_First_Case
+Y <- Brazil_train$Cases
+
+
+## 그리드 탐색
+grid_Brazil <- data.frame(a = c(max(Y) - 20000, max(Y) + 20000), b = c(-100, 100), c = c(-100, 100))
+
+
+## Logistic  model
+eq_log <- Y ~ a/(1 + exp(b + c*X))
+
+# 초기값 생성
+# fit_log_B <- nls2(eq_log, start = grid_Brazil, algorithm = "plinear-random", control = nls.control(maxiter = 3000))
+# initial_log_B <- coef(fit_log_B)
+initial_log_B <- c(4.610237e+04,  7.795043e+00, -9.751111e-02)
+
+# 초기값을 바탕으로 적합
+fit_log_B <- nls(eq_log, start = list(a = initial_log_B[1],
+                                     b = initial_log_B[2],
+                                     c = initial_log_B[3]))
+summary(fit_log_B)
+
+
+ggplot() +
+  geom_point(aes(X, Y), shape = 1) +
+  geom_line(aes(X, coef(fit_log_B)[1] / (1 + exp(coef(fit_log_B)[2] + coef(fit_log_B)[3] * X))),
+            color = "coral", lwd = 1) +
+  labs(title = "COVID-19 Cumulative cases in Brazil : Logistic Model",
+       x = "From 02/26 To 04/19 in 2020", y = "Cumulative Cases")
+
+
+## 일별 예측값
+X_pred <- Brazil_valid$Days_after_First_Case
+Y_pred <- Brazil_valid$Cases
+
+ggplot() +
+  geom_point(aes(X, Y), shape = 1) +
+  geom_line(aes(X, coef(fit_log_B)[1] / (1 + exp(coef(fit_log_B)[2] + coef(fit_log_B)[3] * X))),
+            color = "coral", size = 1.5, alpha = 0.3) +
+  labs(title = "COVID-19 Cumulative cases in Brazil : Logistic Model",
+       subtitle = "Predict the cases from 04/20 to 05/31 Based on data from 02/26 to 04/19", 
+       x = "From 02/26 To 05/31 in 2020", y = "Cumulative Cases") +
+  
+  # 4월 20일부터 5월 31일까지 예측
+  geom_point(aes(X_pred, Y_pred), shape = 1) +
+  geom_line(aes(X_pred, coef(fit_log_B)[1] / (1 + exp(coef(fit_log_B)[2] + coef(fit_log_B)[3] * X_pred))),
+             col = "coral", size = 1, linetype = 6) +
+  geom_vline(xintercept = 88.5, col = "red", lwd = 1, linetype = 3)
+  
+
+
+```
+
+
+```{r}
+
+## Bertalanffy model
+eq_Ber <- Y ~ a * ((1 - exp((-b) * X))^c)
+
+# 초기값 생성
+# fit_Ber_B = nls2(eq_Ber, start = grid_Brazil, algorithm = "plinear-random", control = nls.control(maxiter = 5000))
+# initial_Ber_B <- coef(fit_Ber_B) 
+initial_Ber_B <- c(2.699297e+05, 3.379691e-02, 3.717493e+01)
+
+# 초기값을 바탕으로 적합
+fit_Ber_B <- nls(eq_Ber, start = list(a = initial_Ber_B[1],
+                                     b = initial_Ber_B[2],
+                                     c = initial_Ber_B[3]))
+
+summary(fit_Ber_B)
+
+
+# 시각화
+ggplot() +
+  geom_point(aes(X, Y), shape = 1) +
+  geom_line(aes(X, coef(fit_Ber_B)[1] * ((1 - exp(-coef(fit_Ber_B)[2] * X ))^coef(fit_Ber_B)[3])),
+            color = "blueviolet", lwd = 1) +
+  labs(title = "COVID-19 Cumulative cases in Brazil : Bertalanffy Model",
+       x = "From 02/26 To 04/19 in 2020", y = "Cumulative Cases")
+
+
+## 일별 예측값
+X_pred <- Brazil_valid$Days_after_First_Case
+Y_pred <- Brazil_valid$Cases
+
+ggplot() +
+  geom_point(aes(X, Y), shape = 1) +
+  geom_line(aes(X, coef(fit_Ber_B)[1] * ((1 - exp(-coef(fit_Ber_B)[2] * X ))^coef(fit_Ber_B)[3])),
+            color = "blueviolet", lwd = 1) +
+  labs(title = "COVID-19 Cumulative cases in Brazil : Bertalanffy Model",
+       subtitle = "Predict the cases from 04/20 to 05/31 Based on data from 02/26 to 04/19", 
+       x = "From 02/26 To 05/31 in 2020", y = "Cumulative Cases") +
+  
+  # 4월 20일부터 5월 31일까지 예측
+  geom_point(aes(X_pred, Y_pred), shape = 1) +
+  geom_line(aes(X_pred, coef(fit_Ber_B)[1] * ((1 - exp(-coef(fit_Ber_B)[2] * X_pred))^coef(fit_Ber_B)[3])),
+             col = "blueviolet", size = 1, linetype = 6) +
+  geom_vline(xintercept = 88.5, col = "red", lwd = 1, linetype = 3)
+
+```
+
+
+```{r}
+
+## Gompertz model
+eq_Gom <- Y ~ a * exp(-b * exp(-c * X))
+
+# 초기값 생성
+# fit_Gom_B = nls2(eq_Gom, start = grid_Brazil, algorithm = "plinear-random", control = nls.control(maxiter = 5000))
+# initial_Gom_B <- coef(fit_Gom_B)
+initial_Gom_B <- c(5.581085e+04, 3.473065e+01, 2.421904e-02)
+
+# 초기값을 바탕으로 적합
+fit_Gom_B <- nls(eq_Gom, start = list(a = initial_Gom_B[1],
+                                     b = initial_Gom_B[2],
+                                     c = initial_Gom_B[3]))
+summary(fit_Gom_B)
+
+
+# 시각화
+ggplot() +
+  geom_point(aes(X, Y), shape = 1) +
+  geom_line(aes(X, coef(fit_Gom_B)[1] * (exp(-coef(fit_Gom_B)[2] * exp(-coef(fit_Gom_B)[3] * X )))),
+            color = "darkgreen", size = 1) +
+  labs(title = "COVID-19 Cumulative cases in Brazil : Gompertz Model",
+       x = "From 02/26 To 04/19 in 2020", y = "Cumulative Cases")
+
+
+## 일별 예측값
+X_pred <- Brazil_valid$Days_after_First_Case
+Y_pred <- Brazil_valid$Cases
+
+ggplot() +
+  geom_point(aes(X, Y), shape = 1) +
+  geom_line(aes(X, coef(fit_Gom_B)[1] * (exp(-coef(fit_Gom_B)[2] * exp(-coef(fit_Gom_B)[3] * X )))),
+            color = "darkgreen", lwd = 1) +
+  labs(title = "COVID-19 Cumulative cases in Brazil : Gompertz Model",
+       subtitle = "Predict the cases from 04/20 to 05/31 Based on data from 02/26 to 04/19", 
+       x = "From 02/26 To 05/31 in 2020", y = "Cumulative Cases") +
+  
+  # 4월 20일부터 5월 31일까지 예측
+  geom_point(aes(X_pred, Y_pred), shape = 1) + 
+  geom_line(aes(X_pred, coef(fit_Gom_B)[1] * (exp(-coef(fit_Gom_B)[2] * exp(-coef(fit_Gom_B)[3] * X_pred)))),
+             col = "darkgreen", size = 1, linetype = 6) +
+  geom_vline(xintercept = 88.5, col = "red", lwd = 1, linetype = 3)
+
+```
+
+<br>
+
+```{r}
+X_pred <- Brazil_valid$Days_after_First_Case
+Y_pred <- Brazil_valid$Cases
+
+Brazil_pred <- Brazil_valid %>%
+  mutate(Logistic_pred = predict(fit_log_B, data.frame(X = X_pred)),
+         Ber_pred = predict(fit_Ber_B, data.frame(X = X_pred)),
+         Gom_pred = predict(fit_Gom_B, data.frame(X = X_pred)))
+
+Brazil_pred %>%
+  select(2, 4, 7:9)
+
+```
+
+<br>
+
+#### (1-3)	모형의 예측값과 실제 관측값을 하나의 plot에 나타낼 것. X축은 첫 케이스가 발생한 날부터 흐른 날짜를 나타내고, Y축은 실제 관찰된 값을 점으로 표시하고 각 모형의 예측값은 선으로 나타낼 것.
+
+```{r}
+
+X <- Brazil_train$Days_after_First_Case
+Y <- Brazil_train$Cases
+
+ggplot() +
+  geom_point(aes(X-34, Y), shape = 1) +
+  geom_line(aes(X-34, coef(fit_log_B)[1] / (1 + exp(coef(fit_log_B)[2] + coef(fit_log_B)[3] * X))),
+            color = "coral", size = 1.5, alpha = 0.7) +
+  geom_line(aes(X-34, coef(fit_Ber_B)[1] * ((1 - exp(-coef(fit_Ber_B)[2] * X))^coef(fit_Ber_B)[3])),
+            color = "blueviolet", size = 1.5, alpha = 0.7) +
+  geom_line(aes(X-34, coef(fit_Gom_B)[1] * (exp(-coef(fit_Gom_B)[2] * exp(-coef(fit_Gom_B)[3] * X)))),
+            color = "darkgreen", size = 1.5, alpha = 0.5) +
+  labs(title = "COVID-19 Cumulative cases in Brazil",
+       subtitle = "Predict the cases from 04/20 to 05/31 Based on data from 02/26 to 04/19", 
+       x = "From 02/26 To 05/31 in 2020", y = "Cumulative Cases") +
+  
+  # 4월 20일부터 5월 31일까지 예측
+  geom_point(aes(X_pred-34, Y_pred), shape = 1) +
+  geom_vline(xintercept = 88.5-34, col = "red", lwd = 1, linetype = 3) +
+    
+  # Logistic model
+  geom_line(aes(X_pred-34, coef(fit_log_B)[1] / (1 + exp(coef(fit_log_B)[2] + coef(fit_log_B)[3] * X_pred))),
+             col = "coral", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 500000), col = "coral", size = 1) +
+  geom_text(aes(x = 10, y = 500000, label = "Logistic"), color = "coral") +
+  
+  # Bertalanffy model
+  geom_line(aes(X_pred-34, coef(fit_Ber_B)[1] * ((1 - exp(-coef(fit_Ber_B)[2] * X_pred))^coef(fit_Ber_B)[3])),
+             col = "blueviolet", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 470000), col = "blueviolet", size = 1) +
+  geom_text(aes(x = 12, y = 470000, label = "Bertalanffy"), color = "blueviolet") +
+  
+  # Gompertz model
+  geom_line(aes(X_pred-34, coef(fit_Gom_B)[1] * (exp(-coef(fit_Gom_B)[2] * exp(-coef(fit_Gom_B)[3] * X_pred)))),
+             col = "darkgreen", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 440000), col = "darkgreen", size = 1) +
+  geom_text(aes(x = 11, y = 440000, label = "Gompertz"), color = "darkgreen")
+
+
+```
+
+
+<br>
+
+#### (1-4)	4/20 – 5/31 까지의 일별 관찰값과 예측값을 사용하여 MSE 를 구할 것
+
+```{r}
+
+## Logistic Model MSE
+SSE_log <- sum((Brazil_pred$Cases - Brazil_pred$Logistic_pred)^2)
+SST_log <- sum((Brazil_pred$Cases - mean(Brazil_train$Cases))^2)
+MSE_log <- SSE_log / length(Brazil_pred$Cases)
+
+
+## Bertalanffy Model MSE
+SSE_Ber <- sum((Brazil_pred$Cases - Brazil_pred$Ber_pred)^2)
+SST_Ber <- sum((Brazil_pred$Cases - mean(Brazil_train$Cases))^2)
+MSE_Ber <- SSE_Ber / length(Brazil_pred$Cases)
+
+
+## Gompertz Model MSE
+SSE_Gom <- sum((Brazil_pred$Cases - Brazil_pred$Gom_pred)^2)
+SST_Gom <- sum((Brazil_pred$Cases - mean(Brazil_train$Cases))^2)
+MSE_Gom <- SSE_Gom / length(Brazil_pred$Cases)
+
+
+cat("(Logistic) MSE : ", MSE_log, "\n")
+cat("(Bertalanffy) MSE: ", MSE_Ber, "\n")
+cat("(Gompertz) MSE : ", MSE_Gom)
+
+```
+
+ Brazil_pred data set를 바탕으로 하기 때문에 MSPE(Mean Sqaured Prediction Error)를 계산하였다.
+ 
+
+<br>
+
+#### (1-5)	MSE를 기반으로 세 모형 중에서 어떤 모형이 제일 자료를 잘 적합하는 지 판단하시오.
+
+```{r}
+
+R_squared_log <- 1 - SSE_log/SST_log
+R_squared_Ber <- 1 - SSE_Ber/SST_Ber
+R_squared_Gom <- 1 - SSE_Gom/SST_Gom
+
+cat("(Logistic) R_squared : ", R_squared_log, "\n")
+cat("(Bertalanffy) R_squared : ", R_squared_Ber, "\n")
+cat("(Gompertz) R_squared : ", R_squared_Gom)
+
+```
+
+ (4)에서 도출한 검정 MSE를 바탕으로 결정계수 $R^2$를 비교한 결과, (3)의 그래프 모양대로 Bertalanffy > Gompertz > Logistic model 순으로 설명력이 높은 것을 알 수 있다. 
+
+
+<br>
+<br>
+
+### 2. 첨부한 엑셀 파일에 본인이 담당했던 국가 이외에 2개의 새로운 국가가 배정되어 있음. 이 3가지 국가 자료에 대해 최근 5/31일까지의 자료를 다운받아 
+
+<br>
+
+#### (2-1)	Logistic, Bertalanffy, Gompertz model의 모형을 새로 적합할 것
+
+<br>
+
+#### 헝가리 데이터
+
+```{r}
+## 헝가리 데이터
+
+Hungary <- corona %>%
+  filter(Country_Region == "Hungary") %>%
+  slice(1:131)
+
+Hungary <- Hungary[Hungary$Cases!=0,]
+Hungary_train <- Hungary[1:47,]; Hungary_valid <- Hungary[48:89,]
+
+X <- Hungary$Days_after_First_Case
+Y <- Hungary$Cases
+
+
+## 그리드 탐색
+grid_Hungary <- data.frame(a = c(min(Y), max(Y) + 5000), b = c(-30, 30), c = c(-30, 30))
+```
+
+
+```{r}
+## Logistic  model
+eq_log <- Y ~ a/(1 + exp(b + c*X))
+
+## 초기값 생성
+#fit_log_H <- nls2(eq_log, start = grid_Hungary, algorithm = "plinear-random", control = nls.control(maxiter = 1000))
+#initial_log_H <- coef(fit_log_H)
+initial_log_H <- c(795.4851914, 7.1441869, -0.1050411 )
+
+# 초기값을 바탕으로 적합
+fit_log_H <- nls(eq_log, start = list(a = initial_log_H[1],
+                                     b = initial_log_H[2],
+                                     c = initial_log_H[3]))
+summary(fit_log_H)
+```
+
+```{r}
+
+## Bertalanffy model
+eq_Ber <- Y ~ a * ((1 - exp((-b) * X))^c)
+
+## 초기값 생성
+#fit_Ber_H = nls2(eq_Ber, start = grid_Hungary, algorithm = "plinear-random", control = nls.control(maxiter = 3000))
+#initial_Ber_H <- coef(fit_Ber_H) 
+initial_Ber_H <- c(3.122438e+03, 5.375042e-02, 2.899045e+01)
+
+# 초기값을 바탕으로 적합
+fit_Ber_H <- nls(eq_Ber, start = list(a = initial_Ber_H[1],
+                                     b = initial_Ber_H[2],
+                                     c = initial_Ber_H[3]))
+
+summary(fit_Ber_H)
+
+
+```
+
+
+```{r}
+
+## Gompertz model
+eq_Gom <- Y ~ a * exp(-b * exp(-c * X))
+
+## 초기값 생성
+#fit_Gom_H = nls2(eq_Gom, start = grid_Hungary, algorithm = "plinear-random", control = nls.control(maxiter = 5000))
+#initial_Gom_H <- coef(fit_Gom_H)
+initial_Gom_H <- c(5.880673e+03, 4.614169e+00, 1.553079e-02)
+
+# 초기값을 바탕으로 적합
+fit_Gom_H <- nls(eq_Gom, start = list(a = initial_Gom_H[1],
+                                     b = initial_Gom_H[2],
+                                     c = initial_Gom_H[3]))
+summary(fit_Gom_H)
+
+```
+
+
+<br>
+
+#### 파라과이 데이터
+
+```{r}
+## 파라과이 데이터
+Paraguay <- corona %>%
+  filter(Country_Region == "Paraguay") %>%
+  slice(1:131)
+
+Paraguay <- Paraguay[Paraguay$Cases!=0,]
+Paraguay_train <- Paraguay[1:43,]; Paraguay_valid <- Paraguay[44:85,]
+
+X <- Paraguay$Days_after_First_Case
+Y <- Paraguay$Cases
+
+## 그리드 탐색
+grid_Paraguay <- data.frame(a = c(min(Y), max(Y) + 5000), b = c(-30, 30), c = c(-30, 30))
+
+```
+
+
+```{r}
+## Logistic  model
+eq_log <- Y ~ a/(1 + exp(b + c*X))
+
+## 초기값 생성
+#fit_log_P <- nls2(eq_log, start = grid_Paraguay, algorithm = "plinear-random", control = nls.control(maxiter = 2000))
+#initial_log_P <- coef(fit_log_P)
+initial_log_P <- c(4047.47778198, 12.78304533, -0.08859789)
+
+# 초기값을 바탕으로 적합
+fit_log_P <- nls(eq_log, start = list(a = initial_log_P[1],
+                                     b = initial_log_P[2],
+                                     c = initial_log_P[3]))
+summary(fit_log_P)
+
+```
+
+```{r}
+
+## Bertalanffy model
+eq_Ber <- Y ~ a * ((1 - exp((-b) * X))^c)
+
+## 초기값 생성
+#fit_Ber_P = nls2(eq_Ber, start = grid_Paraguay, algorithm = "plinear-random", control = nls.control(maxiter = 3000))
+#initial_Ber_P <- coef(fit_Ber_P) 
+initial_Ber_P <- c(2.965750e+03, 2.059801e-02, 7.276436e+00)
+
+# 초기값을 바탕으로 적합
+fit_Ber_P <- nls(eq_Ber, start = list(a = initial_Ber_P[1],
+                                     b = initial_Ber_P[2],
+                                     c = initial_Ber_P[3]))
+
+summary(fit_Ber_P)
+
+
+```
+
+
+```{r}
+
+## Gompertz model
+eq_Gom <- Y ~ a * exp(-b * exp(-c * X))
+
+## 초기값 생성
+#fit_Gom_P = nls2(eq_Gom, start = grid_Paraguay, algorithm = "plinear-random", control = nls.control(maxiter = 5000))
+#initial_Gom_P <- coef(fit_Gom_P)
+initial_Gom_P <- c(2.014590e+03, 1.280609e+01, 3.247128e-02)
+
+# 초기값을 바탕으로 적합
+fit_Gom_P <- nls(eq_Gom, start = list(a = initial_Gom_P[1],
+                                     b = initial_Gom_P[2],
+                                     c = initial_Gom_P[3]))
+
+summary(fit_Gom_P)
+
+```
+
+<br>
+
+#### (2)	모형의 예측값과 실제 관측값을 하나의 plot에 나타낼 것. X축은 첫 케이스가 발생한 날부터 흐른 날짜를 나타내고, Y축은 실제 관찰된 값을 점으로 표시하고 각 모형의 예측값은 선으로 나타낼 것.
+
+```{r}
+
+## Hungary Data
+
+X <- Hungary$Days_after_First_Case
+Y <- Hungary$Cases
+
+
+ggplot() +
+  geom_point(aes(X-42, Y), shape = 1) +
+  
+  # Logistic model
+  geom_line(aes(X-42, coef(fit_log_H)[1] / (1 + exp(coef(fit_log_H)[2] + coef(fit_log_H)[3] * X))),
+            col = "coral", size = 1) +
+  geom_line(aes(x = 70:75, y = 1000), col = "coral", size = 1) +
+  geom_text(aes(x = 80, y = 1000, label = "Logistic"), color = "coral") +
+  
+  # Bertalanffy model
+  geom_line(aes(X-42, coef(fit_Ber_H)[1] * ((1 - exp(-coef(fit_Ber_H)[2] * X))^coef(fit_Ber_H)[3])),
+             col = "blueviolet", size = 1) +
+  geom_line(aes(x = 70:75, y = 700), col = "blueviolet", size = 1) +
+  geom_text(aes(x = 81, y = 700, label = "Bertalanffy"), color = "blueviolet") +
+  
+  # Gompertz model
+  geom_line(aes(X-42, coef(fit_Gom_H)[1] * (exp(-coef(fit_Gom_H)[2] * exp(-coef(fit_Gom_H)[3] * X)))),
+             col = "darkgreen", size = 1, alpha = 0.8) +
+  geom_line(aes(x = 70:75, y = 400), col = "darkgreen", size = 1) +
+  geom_text(aes(x = 81, y = 400, label = "Gompertz"), color = "darkgreen") +
+  
+  labs(title = "COVID-19 Cumulative cases in Hungary",
+       subtitle = "Prediction based on data from 03/04 to 05/31", 
+       x = "From 03/04 To 05/31 in 2020", y = "Cumulative Cases")
+
+```
+
+ 세 그래프가 매우 비슷한 형태로 나타나며, 특히 Bertalanffy와 Gompertz model은 COVID-19 초기 단계부터 잠잠해지고 있는 5월 31일에 이르기까지 거의 겹친다는 것을 알 수 있다. Logistic model이 약간 다른 모양을 띤다.
+ 
+
+```{r}
+
+## Paraguay Data
+
+X <- Paraguay$Days_after_First_Case
+Y <- Paraguay$Cases
+
+
+ggplot() +
+  geom_point(aes(X-46, Y), shape = 1) +
+  
+  # Logistic model
+  geom_line(aes(X-46, coef(fit_log_P)[1] / (1 + exp(coef(fit_log_P)[2] + coef(fit_log_P)[3] * X))),
+            col = "coral", size = 1) +
+  geom_line(aes(x = 60:65, y = 250), col = "coral", size = 0.8) +
+  geom_text(aes(x = 71, y = 250, label = "Logistic"), color = "coral") +
+  
+  # Bertalanffy model
+  geom_line(aes(X-46, coef(fit_Ber_P)[1] * ((1 - exp(-coef(fit_Ber_P)[2] * X))^coef(fit_Ber_P)[3])),
+             col = "blueviolet", size = 1) +
+  geom_line(aes(x = 60:65, y = 170), col = "blueviolet", size = 0.8) +
+  geom_text(aes(x = 73, y = 170, label = "Bertalanffy"), color = "blueviolet") +
+  
+  # Gompertz model
+  geom_line(aes(X-46, coef(fit_Gom_P)[1] * (exp(-coef(fit_Gom_P)[2] * exp(-coef(fit_Gom_P)[3] * X)))),
+             col = "darkgreen", size = 1, alpha = 0.8) +
+  geom_line(aes(x = 60:65, y = 90), col = "darkgreen", size = 0.8) +
+  geom_text(aes(x = 73, y = 90, label = "Gompertz"), color = "darkgreen") +
+  
+  labs(title = "COVID-19 Cumulative cases in Paraguay",
+       subtitle = "Prediction based on data from 03/08 to 05/31", 
+       x = "From 03/08 To 05/31 in 2020", y = "Cumulative Cases")
+
+
+```
+
+ Hungary 데이터와 마찬가지로 세 그래프가 매우 비슷한 형태로 나타나며, 특히 Bertalanffy와 Gompertz model은 COVID-19 확산 단계에서 약간의 차이가 날 뿐 시간이 지나가면서 거의 겹친다는 것을 알 수 있다.
+
+
+<br>
+
+
+### 3. 첨부한 논문에 있는 Poisson regression model을 참조하여 최근 5/31까지의 자료를 사용하여 모형을 적합하고 적합 결과를 그래프로 나타낼 것. 기존에 사용했던 3가지 모형과 비교해 볼 것.
+
+<br>
+
+#### (3-1) Poisson regression model in Hungary 
+
+```{r}
+
+set.seed(1234)
+fit_Poi_H <- glm(Difference ~ Days_after_First_Case, family = poisson, Hungary)
+seg_Poi_H <- segmented(fit_Poi_H, seg.Z = ~ Days_after_First_Case, psi = 60)
+summary(seg_Poi_H)
+
+Hungary <- Hungary %>% mutate(seg_fitted = fitted(seg_Poi_H))
+
+
+# plot the fitted model
+ggplot(Hungary) + 
+  geom_point(aes(Days_after_First_Case, Difference)) +
+  geom_line(aes(Days_after_First_Case, seg_fitted), col = 2, size = 1) +
+  labs(title = "Segmented Regression for Daily Cases in Hungary",
+       x = "Days after First Case", y = "New Daily cases")
+
+
+# Plot the cumulative cases
+ggplot(Hungary) + 
+  geom_point(aes(Days_after_First_Case, Cases)) +
+  geom_line(aes(Days_after_First_Case, cumsum(seg_fitted)), col = 2, size = 1) +
+  labs(title = "Segmented Regression for Total Cases in Hungary",
+       x = "Days after First Case", y = "Total Cases")
+
+```
+
+<br>
+
+```{r}
+## Plot
+X <- Hungary$Days_after_First_Case
+Y <- Hungary$Cases
+
+Hungary_pred <- Hungary %>%
+  mutate(Poi_pred = cumsum(Hungary$seg_fitted),
+         Logistic_pred = predict(fit_log_H, data.frame(X = Hungary$Days_after_First_Case)),
+         Ber_pred = predict(fit_Ber_H, data.frame(X = Hungary$Days_after_First_Case)),
+         Gom_pred = predict(fit_Gom_H, data.frame(X = Hungary$Days_after_First_Case)))
+
+
+ggplot() +
+  geom_point(aes(X-42, Y), shape = 1) +
+  
+  # Logistic model
+  geom_line(aes(X-42, coef(fit_log_H)[1] / (1 + exp(coef(fit_log_H)[2] + coef(fit_log_H)[3] * X))),
+            col = "coral", size = 1) +
+  geom_line(aes(x = 70:75, y = 1000), col = "coral", size = 1) +
+  geom_text(aes(x = 80, y = 1000, label = "Logistic"), color = "coral") +
+  
+  # Bertalanffy model
+  geom_line(aes(X-42, coef(fit_Ber_H)[1] * ((1 - exp(-coef(fit_Ber_H)[2] * X))^coef(fit_Ber_H)[3])),
+             col = "blueviolet", size = 1) +
+  geom_line(aes(x = 70:75, y = 700), col = "blueviolet", size = 1) +
+  geom_text(aes(x = 81, y = 700, label = "Bertalanffy"), color = "blueviolet") +
+  
+  # Gompertz model
+  geom_line(aes(X-42, coef(fit_Gom_H)[1] * (exp(-coef(fit_Gom_H)[2] * exp(-coef(fit_Gom_H)[3] * X)))),
+             col = "darkgreen", size = 1) +
+  geom_line(aes(x = 70:75, y = 400), col = "darkgreen", size = 1) +
+  geom_text(aes(x = 81, y = 400, label = "Gompertz"), color = "darkgreen") +
+  
+  # Poisson model
+  geom_line(aes(X-42, Hungary_pred$Poi_pred),
+             col = "firebrick", size = 1) +
+  geom_line(aes(x = 70:75, y = 100), col = "firebrick", size = 1) +
+  geom_text(aes(x = 80, y = 100, label = "Poisson"), color = "firebrick") +
+  
+  labs(title = "COVID-19 Cumulative cases in Hungary",
+       subtitle = "Prediction based on data from 03/04 to 05/31", 
+       x = "From 03/04 To 05/31 in 2020", y = "Cumulative Cases")
+
+```
+
+```{r}
+
+
+## Logistic Model MSE
+SSE_log_H <- sum((Hungary_pred$Cases - Hungary_pred$Logistic_pred)^2)
+SST_log_H <- sum((Hungary_pred$Cases - mean(Hungary_pred$Cases))^2)
+MSE_log_H <- SSE_log_H / length(Hungary_pred$Cases)
+
+
+## Bertalanffy Model MSE
+SSE_Ber_H <- sum((Hungary_pred$Cases - Hungary_pred$Ber_pred)^2)
+SST_Ber_H <- sum((Hungary_pred$Cases - mean(Hungary_pred$Cases))^2)
+MSE_Ber_H <- SSE_Ber_H / length(Hungary_pred$Cases)
+
+
+## Gompertz Model MSE
+SSE_Gom_H <- sum((Hungary_pred$Cases - Hungary_pred$Gom_pred)^2)
+SST_Gom_H <- sum((Hungary_pred$Cases - mean(Hungary_pred$Cases))^2)
+MSE_Gom_H <- SSE_Gom_H / length(Hungary_pred$Cases)
+
+
+## Segmented Poisson Model MSE
+SSE_Poi_H <- sum((Hungary_pred$Cases - Hungary_pred$Poi_pred)^2)
+SST_Poi_H <- sum((Hungary_pred$Cases - mean(Hungary_pred$Cases))^2)
+MSE_Poi_H <- SSE_Poi_H / length(Hungary_pred$Cases)
+
+
+cat("(Logistic) MSE : ", MSE_log_H, ", R_Sqaured : ",  1 - SSE_log_H/SST_log_H, "\n")
+cat("(Bertalanffy) MSE: ", MSE_Ber_H, ", R_Sqaured : ",  1 - SSE_Ber_H/SST_Ber_H, "\n")
+cat("(Gompertz) MSE : ", MSE_Gom_H, ", R_Sqaured : ",  1 - SSE_Gom_H/SST_Gom_H, "\n")
+cat("(Poisson) MSE : ", MSE_Poi_H, ", R_Sqaured : ",  1 - SSE_Poi_H/SST_Poi_H)
+
+```
+
+ 헝가리 데이터를 바탕으로 Logistic, Bertalanffy, Gompertz, Segmented Poisson model을 적합시킨 결과, MSE와 $R^2$를 비교했을 때 Logistic model이 상대적으로 MSE가 큰 것을 제외하면 나머지 세 모델을 비슷한 정도의 설명력을 지닌다. 그 중에서 가장 설명력이 좋은 모델을 Gompertz model로서 전체 데이터의 99.922%를 설명한다.
+
+
+<br>
+
+#### (3-2) Poisson regression model in Paraguay 
+
+```{r}
+
+set.seed(1234)
+fit_Poi_P <- glm(Difference ~ Days_after_First_Case, family = poisson, Paraguay)
+seg_Poi_P <- segmented(fit_Poi_P, seg.Z = ~ Days_after_First_Case, psi = 100)
+summary(seg_Poi_P)
+
+seg_Poi_P2 <- segmented(fit_Poi_P, seg.Z = ~ Days_after_First_Case, psi = c(105, 115))
+summary(seg_Poi_P2)
+  # Break-point 2개
+
+Paraguay <- Paraguay %>% mutate(seg_fitted = fitted(seg_Poi_P),
+                                seg_fitted2 = fitted(seg_Poi_P2))
+
+
+# plot the fitted model
+ggplot(Paraguay) + 
+  geom_point(aes(Days_after_First_Case, Difference)) +
+  geom_line(aes(Days_after_First_Case, seg_fitted), col = 2) +
+  labs(title = "Segmented Regression for Daily Cases in Paraguay",
+       subtitle = "# of Break-point = 1",
+       x = "Days after First Case", y = "New Daily Cases")
+
+ggplot(Paraguay) + 
+  geom_point(aes(Days_after_First_Case, Difference)) +
+  geom_line(aes(Days_after_First_Case, seg_fitted2), col = 2) +
+  labs(title = "Segmented Regression for Daily Cases in Paraguay",
+       subtitle = "# of Break-point = 2",
+       x = "Days after First Case", y = "New Daily Cases")
+  # Break-point 2개
+
+
+# Plot the cumulative cases
+ggplot(Paraguay) + 
+  geom_point(aes(Days_after_First_Case, Cases)) +
+  geom_line(aes(Days_after_First_Case, cumsum(seg_fitted)), col = 2, size = 1) +
+  labs(title = "Segmented Regression for Total Cases in Paraguay",
+       subtitle = "# of Break-point = 1",
+       x = "Days after First Case", y = "Total Cases")
+
+ggplot(Paraguay) + 
+  geom_point(aes(Days_after_First_Case, Cases)) +
+  geom_line(aes(Days_after_First_Case, cumsum(seg_fitted2)), col = 2, size = 1) +
+  labs(title = "Segmented Regression for Total Cases in Paraguay",
+       subtitle = "# of Break-point = 2",
+       x = "Days after First Case", y = "Total Cases")
+  # changepoints = 2
+
+
+```
+
+<br>
+
+```{r}
+
+Paraguay_pred <- Paraguay %>%
+  mutate(Poi_pred = cumsum(Paraguay$seg_fitted),
+         Poi_pred2 = cumsum(Paraguay$seg_fitted2),
+         Logistic_pred = predict(fit_log_P, data.frame(X = Paraguay$Days_after_First_Case)),
+         Ber_pred = predict(fit_Ber_P, data.frame(X = Paraguay$Days_after_First_Case)),
+         Gom_pred = predict(fit_Gom_P, data.frame(X = Paraguay$Days_after_First_Case)))
+
+## Plot
+X <- Paraguay$Days_after_First_Case
+Y <- Paraguay$Cases
+
+ggplot() +
+  geom_point(aes(X-46, Y), shape = 1) +
+  
+  # Logistic model
+  geom_line(aes(X-46, coef(fit_log_P)[1] / (1 + exp(coef(fit_log_P)[2] + coef(fit_log_P)[3] * X))),
+            col = "coral", size = 1.5) +
+  geom_line(aes(x = 60:65, y = 300), col = "coral", size = 0.8) +
+  geom_text(aes(x = 71, y = 300, label = "Logistic"), color = "coral") +
+  
+  # Bertalanffy model
+  geom_line(aes(X-46, coef(fit_Ber_P)[1] * ((1 - exp(-coef(fit_Ber_P)[2] * X))^coef(fit_Ber_P)[3])),
+             col = "blueviolet", size = 1.5) +
+  geom_line(aes(x = 60:65, y = 230), col = "blueviolet", size = 0.8) +
+  geom_text(aes(x = 72.5, y = 230, label = "Bertalanffy"), color = "blueviolet") +
+  
+  # Gompertz model
+  geom_line(aes(X-46, coef(fit_Gom_P)[1] * (exp(-coef(fit_Gom_P)[2] * exp(-coef(fit_Gom_P)[3] * X)))),
+             col = "darkgreen", size = 1.5) +
+  geom_line(aes(x = 60:65, y = 160), col = "darkgreen", size = 0.8) +
+  geom_text(aes(x = 72, y = 160, label = "Gompertz"), color = "darkgreen") +
+
+  # Poisson model
+  geom_line(aes(X-46, Paraguay_pred$Poi_pred),
+             col = "firebrick", size = 1) +
+  geom_line(aes(x = 60:65, y = 90), col = "firebrick", size = 0.8) +
+  geom_text(aes(x = 71, y = 90, label = "Poisson"), color = "firebrick") +
+
+  # Poisson model2
+  geom_line(aes(X-46, Paraguay_pred$Poi_pred2),
+             col = "deepskyblue", size = 1) +
+  geom_line(aes(x = 60:65, y = 20), col = "deepskyblue", size = 0.8) +
+  geom_text(aes(x = 72, y = 20, label = "Poisson2"), color = "deepskyblue") +
+
+    labs(title = "COVID-19 Cumulative cases in Paraguay",
+       subtitle = "Prediction based on data from 03/08 to 05/31", 
+       x = "From 03/08 To 05/31 in 2020", y = "Cumulative Cases")
+
+```
+```{r}
+
+
+## Logistic Model MSE
+SSE_log_P <- sum((Paraguay_pred$Cases - Paraguay_pred$Logistic_pred)^2)
+SST_log_P <- sum((Paraguay_pred$Cases - mean(Paraguay_pred$Cases))^2)
+MSE_log_P <- SSE_log_P / length(Paraguay_pred$Cases)
+
+
+## Bertalanffy Model MSE
+SSE_Ber_P <- sum((Paraguay_pred$Cases - Paraguay_pred$Ber_pred)^2)
+SST_Ber_P <- sum((Paraguay_pred$Cases - mean(Paraguay_pred$Cases))^2)
+MSE_Ber_P <- SSE_Ber_P / length(Paraguay_pred$Cases)
+
+
+## Gompertz Model MSE
+SSE_Gom_P <- sum((Paraguay_pred$Cases - Paraguay_pred$Gom_pred)^2)
+SST_Gom_P <- sum((Paraguay_pred$Cases - mean(Paraguay_pred$Cases))^2)
+MSE_Gom_P <- SSE_Gom_P / length(Paraguay_pred$Cases)
+
+
+## Segmented Poisson Model MSE
+SSE_Poi_P <- sum((Paraguay_pred$Cases - Paraguay_pred$Poi_pred)^2)
+SST_Poi_P <- sum((Paraguay_pred$Cases - mean(Paraguay_pred$Cases))^2)
+MSE_Poi_P <- SSE_Poi_P / length(Paraguay_pred$Cases)
+
+
+## Segmented Poisson Model2 MSE
+SSE_Poi_P2 <- sum((Paraguay_pred$Cases - Paraguay_pred$Poi_pred2)^2)
+SST_Poi_P2 <- sum((Paraguay_pred$Cases - mean(Paraguay_pred$Cases))^2)
+MSE_Poi_P2 <- SSE_Poi_P2 / length(Paraguay_pred$Cases)
+
+
+
+cat("(Logistic) MSE : ", MSE_log_P, ", R_Sqaured : ",  1 - SSE_log_P/SST_log_P, "\n")
+cat("(Bertalanffy) MSE: ", MSE_Ber_P, ", R_Sqaured : ",  1 - SSE_Ber_P/SST_Ber_P, "\n")
+cat("(Gompertz) MSE : ", MSE_Gom_P, ", R_Sqaured : ",  1 - SSE_Gom_P/SST_Gom_P, "\n")
+cat("(Poisson) MSE : ", MSE_Poi_P, ", R_Sqaured : ",  1 - SSE_Poi_P/SST_Poi_P, "\n")
+cat("(Poisson2) MSE : ", MSE_Poi_P2, ", R_Sqaured : ",  1 - SSE_Poi_P2/SST_Poi_P2)
+
+
+```
+
+  파라과이의 일일 신규 확진자 수가 break-point를 1개로 설정하기에는 변동성이 컸기 때문에 2개로 나눈 모형(Poisson2)을 새로 적합시켰다. 헝가리 데이터와 달리 Logistic model이 Bertalanffy, Gompertz model보다 1%p 가량 설명력이 좋으며 두 Poisson model이 Logistic model보다 약 0.5%p 정도 설명력이 좋음을 알 수 있다. 그래프나, MSE, $R^2$를 비교했을 때 (Poisson2) 모델이 (Poisson)에 비해 설명력이 좋은 것으로 나타나지만 0.1%p 가량을 더 설명하고 덜 설명하고의 차이기 때문에 만약 과적합을 의식한다면 (Poisson) 모델을 그대로 사용해도 좋을 것이다.
+
+
+<br>
+<br>
+
+### 4. Brazil에서 적합했던 Logistic, Bertalanffy, Gompertz model의 예측이 정확하지 않음을 보았다. 이는 브라질의 일일 확진자 수가 줄어든다고 예상했던 것과 달리 날이 갈수록 증가한 까닭이다. Segmented Poisson model로 예측해보고 더 나은 모델을 찾아보자.
+
+#### (4-1) Segmented Poisson model for predicting COVID-19 cases in Brazil
+
+```{r}
+
+set.seed(1234)
+fit_Poi_B <- glm(Difference ~ Days_after_First_Case, family = poisson, Brazil_train)
+seg_Poi_B <- segmented(fit_Poi_B, seg.Z = ~ Days_after_First_Case, npsi = 1)
+seg_Poi_B2 <- segmented(fit_Poi_B, seg.Z = ~ Days_after_First_Case, npsi = 2)
+summary(seg_Poi_B); summary(seg_Poi_B2)
+
+```
+
+
+```{r}
+
+Brazil_train <- Brazil_train %>%
+  mutate(seg_fitted = fitted(seg_Poi_B),
+         seg_fitted2 = fitted(seg_Poi_B2))
+
+# plot the fitted model
+ggplot(Brazil_train) + 
+  geom_point(aes(Days_after_First_Case, Difference)) +
+  geom_line(aes(Days_after_First_Case, seg_fitted), col = 2, size = 1) +
+  geom_line(aes(Days_after_First_Case, seg_fitted2), col = 3, size = 1) +
+  labs(title = "Segmented Regression for Daily Cases in Brazil",
+       x = "Days after First Case", y = "New Daily cases") +
+  geom_vline(aes(xintercept = 60), linetype = "dashed", col = 2, size = 0.5) +
+  geom_vline(aes(xintercept = 57), linetype = "dashed", col = 3, size = 0.5) +
+  geom_vline(aes(xintercept = 71), linetype = "dashed", col = 3, size = 0.5)
+
+
+# Plot the cumulative cases
+ggplot(Brazil_train) + 
+  geom_point(aes(Days_after_First_Case, Cases)) +
+  geom_line(aes(Days_after_First_Case, cumsum(seg_fitted)), col = 2, size = 1) +
+  geom_line(aes(Days_after_First_Case, cumsum(seg_fitted2)), col = 3, size = 1) +
+  labs(title = "Segmented Regression for Total Cases in Brazil",
+       x = "Days after First Case", y = "Total Cases")
+
+
+```
+
+ 2020년 2월 26일부터 4월 19일까지의 Brazil training set을 바탕으로 Segmented Poisson regression을 돌려본 결과 npsi = 1 일 때, x = 60 (default)에서 changepoint가 형성되며 npsi = 2일 때는 x = 57, x = 71에서 changepoint가 형성되었다.
+
+<br>
+
+```{r}
+
+X <- Brazil_train$Days_after_First_Case
+Y <- Brazil_train$Cases
+X_pred <- Brazil_valid$Days_after_First_Case
+Y_pred <- Brazil_valid$Cases
+
+Brazil_pred <- Brazil_valid %>%
+  mutate(Logistic_pred = predict(fit_log_B, data.frame(X = X_pred)),
+         Ber_pred = predict(fit_Ber_B, data.frame(X = X_pred)),
+         Gom_pred = predict(fit_Gom_B, data.frame(X = X_pred)),
+         Poi_pred = cumsum(predict(seg_Poi_B, data.frame(Days_after_First_Case = X_pred), type = "response")) + cumsum(Brazil_train$seg_fitted)[[54]],
+         Poi_pred2 = cumsum(predict(seg_Poi_B2, data.frame(Days_after_First_Case = X_pred), type = "response")) + cumsum(Brazil_train$seg_fitted2)[[54]])
+  # Poi_pred, Poi_pred2 부분이 복잡하긴 한데, train에서 cumsum한 것까지 더해줘야 함.
+
+
+ggplot() +
+  geom_point(aes(X-34, Y), shape = 1) +
+  geom_line(aes(X-34, coef(fit_log_B)[1] / (1 + exp(coef(fit_log_B)[2] + coef(fit_log_B)[3] * X))),
+            color = "coral", size = 1.5, alpha = 0.7) +
+  geom_line(aes(X-34, coef(fit_Ber_B)[1] * ((1 - exp(-coef(fit_Ber_B)[2] * X))^coef(fit_Ber_B)[3])),
+            color = "blueviolet", size = 1.5, alpha = 0.7) +
+  geom_line(aes(X-34, coef(fit_Gom_B)[1] * (exp(-coef(fit_Gom_B)[2] * exp(-coef(fit_Gom_B)[3] * X)))),
+            color = "darkgreen", size = 1.5, alpha = 0.5) +
+  geom_line(aes(X-34, cumsum(Brazil_train$seg_fitted)), color = "firebrick", size = 1.5, alpha = 0.5) +
+  labs(title = "COVID-19 Cumulative cases in Brazil",
+       subtitle = "Predict the cases from 04/20 to 05/31 Based on data from 02/26 to 04/19", 
+       x = "From 02/26 To 05/31 in 2020", y = "Cumulative Cases") +
+  
+  # 4월 20일부터 5월 31일까지 예측
+  geom_point(aes(X_pred-34, Y_pred), shape = 1) +
+  geom_vline(xintercept = 88.5-34, col = "red", lwd = 1, linetype = 3) +
+    
+  # Logistic model
+  geom_line(aes(X_pred-34, Brazil_pred$Logistic_pred),
+             col = "coral", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 500000), col = "coral", size = 1) +
+  geom_text(aes(x = 10, y = 500000, label = "Logistic"), color = "coral") +
+  
+  # Bertalanffy model
+  geom_line(aes(X_pred-34, Brazil_pred$Ber_pred),
+             col = "blueviolet", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 450000), col = "blueviolet", size = 1) +
+  geom_text(aes(x = 12, y = 450000, label = "Bertalanffy"), color = "blueviolet") +
+  
+  # Gompertz model
+  geom_line(aes(X_pred-34, Brazil_pred$Gom_pred),
+             col = "darkgreen", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 400000), col = "darkgreen", size = 1) +
+  geom_text(aes(x = 11, y = 400000, label = "Gompertz"), color = "darkgreen") +
+  
+  # Poisson model
+  geom_line(aes(X_pred-34, Brazil_pred$Poi_pred),
+             col = "firebrick", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 350000), col = "firebrick", size = 1) +
+  geom_text(aes(x = 10, y = 350000, label = "Poisson"), color = "firebrick") +
+  
+  # Poisson2 model
+  geom_line(aes(X_pred-34, Brazil_pred$Poi_pred2),
+             col = "deepskyblue", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 300000), col = "deepskyblue", size = 1) +
+  geom_text(aes(x = 11, y = 300000, label = "Poisson2"), color = "deepskyblue")
+
+```
+
+
+```{r}
+## Logistic Model MSE
+SSE_log <- sum((Brazil_pred$Cases - Brazil_pred$Logistic_pred)^2)
+SST_log <- sum((Brazil_pred$Cases - mean(Brazil_train$Cases))^2)
+MSE_log <- SSE_log / length(Brazil_pred$Cases)
+
+
+## Bertalanffy Model MSE
+SSE_Ber <- sum((Brazil_pred$Cases - Brazil_pred$Ber_pred)^2)
+SST_Ber <- sum((Brazil_pred$Cases - mean(Brazil_train$Cases))^2)
+MSE_Ber <- SSE_Ber / length(Brazil_pred$Cases)
+
+
+## Gompertz Model MSE
+SSE_Gom <- sum((Brazil_pred$Cases - Brazil_pred$Gom_pred)^2)
+SST_Gom <- sum((Brazil_pred$Cases - mean(Brazil_train$Cases))^2)
+MSE_Gom <- SSE_Gom / length(Brazil_pred$Cases)
+
+
+## Segmented Poisson Model MSE
+SSE_Poi <- sum((Brazil_pred$Cases - Brazil_pred$Poi_pred)^2)
+SST_Poi <- sum((Brazil_pred$Cases - mean(Brazil_train$Cases))^2)
+MSE_Poi <- SSE_Poi / length(Brazil_pred$Cases)
+
+
+## Segmented Poisson Model2 MSE
+SSE_Poi2 <- sum((Brazil_pred$Cases - Brazil_pred$Poi_pred2)^2)
+SST_Poi2 <- sum((Brazil_pred$Cases - mean(Brazil_train$Cases))^2)
+MSE_Poi2 <- SSE_Poi2 / length(Brazil_pred$Cases)
+
+
+
+cat("(Logistic) MSE : ", MSE_log, ", R_Sqaured : ",  1 - SSE_log/SST_log, "\n")
+cat("(Bertalanffy) MSE: ", MSE_Ber, ", R_Sqaured : ",  1 - SSE_Ber/SST_Ber, "\n")
+cat("(Gompertz) MSE : ", MSE_Gom, ", R_Sqaured : ",  1 - SSE_Gom/SST_Gom, "\n")
+cat("(Poisson) MSE : ", MSE_Poi, ", R_Sqaured : ",  1 - SSE_Poi/SST_Poi, "\n")
+cat("(Poisson2) MSE : ", MSE_Poi2, ", R_Sqaured : ",  1 - SSE_Poi2/SST_Poi2)
+
+```
+
+<br>
+
+#### (4-2) Spline model for predicting COVID-19 cases in Brazil
+
+```{r}
+## Spline Interpolation Regression
+require(splines)
+
+X <- Brazil_train$Days_after_First_Case
+Y <- Brazil_train$Cases
+
+X_lims <- range(X)
+
+#Generating Test Data
+X.grid <- seq(from = X_lims[1], to = X_lims[2])
+
+#3 cutpoints at X 69, 83
+fit<-lm(Y ~ bs(X, knots = c(69, 78)))
+summary(fit)
+
+
+#Plotting the Regression Line to the scatterplot   
+
+ggplot() +
+  geom_point(aes(X, Y), shape = 1) +
+  geom_line(aes(X, predict(fit, newdata = list(X = X.grid))), col = "purple", size = 1) +
+  geom_vline(xintercept = 69, col = "darkcyan", linetype = 2, alpha = 0.8) +
+  geom_vline(xintercept = 78, col = "darkcyan", linetype = 2, alpha = 0.8)
+
+
+## 4월 20일부터 5월 31일까지의 누적 확진자 수 예측
+predict(fit, newdata = list(X = Brazil_valid$Days_after_First_Case))
+
+```
+
+<br>
+
+```{r}
+## Logistic vs Bertalanffy vs Gompertz vs Poisson vs Poisson2 vs Spline
+ggplot() +
+  
+  # 2월 26일부터 4월 19일까지 train
+  geom_point(aes(X-34, Y), shape = 1) +
+  geom_line(aes(X-34, coef(fit_log_B)[1] / (1 + exp(coef(fit_log_B)[2] + coef(fit_log_B)[3] * X))),
+            color = "coral", size = 1.5, alpha = 0.7) +
+  geom_line(aes(X-34, coef(fit_Ber_B)[1] * ((1 - exp(-coef(fit_Ber_B)[2] * X))^coef(fit_Ber_B)[3])),
+            color = "blueviolet", size = 1.5, alpha = 0.7) +
+  geom_line(aes(X-34, coef(fit_Gom_B)[1] * (exp(-coef(fit_Gom_B)[2] * exp(-coef(fit_Gom_B)[3] * X)))),
+            color = "darkgreen", size = 1.5, alpha = 0.5) +
+  geom_line(aes(X-34, cumsum(Brazil_train$seg_fitted)), color = "firebrick", size = 1.5, alpha = 0.5) +
+  geom_line(aes(X-34, predict(fit, newdata = list(X = X.grid))), col = "darkcyan") + 
+  
+  
+  # 4월 20일부터 5월 31일까지 prediction
+  geom_point(aes(X_pred-34, Y_pred), shape = 1) +
+  geom_vline(xintercept = 88.5-34, col = "red", lwd = 1, linetype = 3) +
+    
+  # Logistic model
+  geom_line(aes(X_pred-34, Brazil_pred$Logistic_pred),
+             col = "coral", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 500000), col = "coral", size = 1) +
+  geom_text(aes(x = 10, y = 500000, label = "Logistic"), color = "coral") +
+  
+  # Bertalanffy model
+  geom_line(aes(X_pred-34, Brazil_pred$Ber_pred),
+             col = "blueviolet", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 450000), col = "blueviolet", size = 1) +
+  geom_text(aes(x = 12, y = 450000, label = "Bertalanffy"), color = "blueviolet") +
+  
+  # Gompertz model
+  geom_line(aes(X_pred-34, Brazil_pred$Gom_pred),
+             col = "darkgreen", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 400000), col = "darkgreen", size = 1) +
+  geom_text(aes(x = 11, y = 400000, label = "Gompertz"), color = "darkgreen") +
+  
+  # Poisson model
+  geom_line(aes(X_pred-34, Brazil_pred$Poi_pred),
+             col = "firebrick", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 350000), col = "firebrick", size = 1) +
+  geom_text(aes(x = 10, y = 350000, label = "Poisson"), color = "firebrick") +
+  
+  # Poisson2 model
+  geom_line(aes(X_pred-34, Brazil_pred$Poi_pred2),
+             col = "deepskyblue", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 300000), col = "deepskyblue", size = 1) +
+  geom_text(aes(x = 11, y = 300000, label = "Poisson2"), color = "deepskyblue") +
+  
+  # Spline model
+  geom_line(aes(X_pred-34, predict(fit, newdata = list(X = Brazil_valid$Days_after_First_Case))),
+             col = "darkcyan", size = 1, linetype = 6) +
+  geom_line(aes(x = 0:5, y = 250000), col = "darkcyan", size = 1) +
+  geom_text(aes(x = 9, y = 250000, label = "Spline"), color = "darkcyan") + 
+  
+  
+  labs(title = "COVID-19 Cumulative cases in Brazil",
+       subtitle = "Predict the cases from 04/20 to 05/31 Based on data from 02/26 to 04/19", 
+       x = "From 02/26 To 05/31 in 2020", y = "Cumulative Cases")
+
+
+```
+
+<br>
+
+```{r}
+## MSPE 예측
+
+# Spline Regression model MSE
+SSE_Spl <- sum((Brazil_pred$Cases - predict(fit, newdata = list(X = Brazil_valid$Days_after_First_Case)))^2)
+SST_Spl <- sum((Brazil_pred$Cases - mean(Brazil_train$Cases))^2)
+MSE_Spl <- SSE_Spl / length(Brazil_pred$Cases)
+
+cat("(Logistic) MSE : ", MSE_log, ", R_Sqaured : ",  1 - SSE_log/SST_log, "\n")
+cat("(Bertalanffy) MSE: ", MSE_Ber, ", R_Sqaured : ",  1 - SSE_Ber/SST_Ber, "\n")
+cat("(Gompertz) MSE : ", MSE_Gom, ", R_Sqaured : ",  1 - SSE_Gom/SST_Gom, "\n")
+cat("(Poisson) MSE : ", MSE_Poi, ", R_Sqaured : ",  1 - SSE_Poi/SST_Poi, "\n")
+cat("(Poisson2) MSE : ", MSE_Poi2, ", R_Sqaured : ",  1 - SSE_Poi2/SST_Poi2, "\n")
+cat("(Spline) MSE : ", MSE_Spl, ", R_Sqaured : ",  1 - SSE_Spl/SST_Spl)
+
+```
+
+<br>
+
+6가지 모델을 적합시킨 결과 MSPE 기준으로 Poisson2 > Spline > Poisson > Bertalanffy > Gompertz > Logistic model 순으로 설명력이 높았다. Poisson2 model과 Spline model 모두 공통적으로 segmentation 개념을 사용하여 break-point 또는 knot를 사전에 결정하여 적합시킨다는 특징을 갖는다. 연구자의 주관성이 개입될 수 있다는 점이 한계로 작용할 수 있지만 브라질 데이터의 경우 Logistic, Bertalanffy, Gompertz 3개의 모델의 변곡점이 너무 일찍 형성되어 $R^2$ 값이 상당히 낮았기 때문에 이를 보완하기 위해 Segmented Poisson이나 Spline model에서처럼 training data에 추가적인 정보를 집어 넣었다. 그 결과, MSPE 값이 현저히 떨어졌으며(break-point가 하나인 Poisson에 비해 두 개인 Poisson2의 정확도가 훨씬 증가하였으며 마찬가지로 Spline model 역시 Poisson2 모델에 버금가는 정확도를 보여준다.) 설명력이 좋아질 수 있었다. 하지만 여전히 과적합의 문제는 조심해야 할 것이다.
+
+<br>
+
