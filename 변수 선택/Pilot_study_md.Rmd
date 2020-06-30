@@ -1,0 +1,363 @@
+---
+title: "COVID-19 Summary-Based Analysis Pilot Study"
+author : "고영현 (2014-19984)"
+date: '2020-06-30'
+output :
+  html_document:
+    theme: journal
+---
+
+<br>
+<br>
+
+
+```{r setup, echo = FALSE}
+## Library
+library(knitr)
+library(tidyverse)
+library(readxl)
+library(GGally)
+
+setwd("C:\\Users\\1234\\Desktop\\고영현\\수업\\인턴십\\변수 데이터")
+```
+
+
+<br>
+<br>
+
+### 1. Data Preprocessing
+
+<br>
+
+#### 1.1. Explanatory Variables
+
+```{r}
+
+saving_rate <- read.csv("GDP대비 저축률.csv", header = TRUE) %>% 
+  select(1, 5)
+names(saving_rate) <- c("Country", "saving_rate")
+
+
+GNI <- read.csv("국민총소득.csv", header = TRUE) %>% 
+  select(1, 5)
+names(GNI) <- c("Country", "GNI")
+
+
+life_expectancy <- read.csv("기대수명.csv", header = TRUE) %>% 
+  filter(성별 == "합계") %>%
+  select(1, 7)
+names(life_expectancy) <- c("Country", "life_expectancy")
+
+
+urbanization <- read.csv("도시화율.csv", header = TRUE) %>% 
+  select(1, 7)
+names(urbanization) <- c("Country", "urbanization")
+
+
+moving_rate <- read.csv("순이동률.csv", header = TRUE) %>% 
+  select(1, 6)
+names(moving_rate) <- c("Country", "moving_rate")
+  # 순이동률 : 단위인구에서 전입자 수 - 전출자 수
+
+
+malnutrition <- read.csv("영양부족_인구비율.csv", header = TRUE) %>%
+  select(2, 7)
+names(malnutrition) <- c("Country", "malnutrition")
+
+
+HDI <- read.csv("인간개발지수.csv", header = TRUE) %>%
+  filter(항목 == "인간개발지수") %>%
+  select(1, 6)
+names(HDI) <- c("Country", "HDI")
+
+
+child_vaccination <- read.csv("유아접종률.csv", header = TRUE) %>%
+  filter(항목 %in% c("유아접종률-홍역[%]", "유아접종률-DPT[%]")) %>%
+  select(1, 2, 6) %>%
+  group_by(국가별) %>% summarise(유아접종률 = mean(X2017.년))
+names(child_vaccination) <- c("Country", "child_vaccination")
+
+
+pop_density <- read.csv("인구밀도.csv", header = TRUE) %>%
+  filter(항목 == "인구밀도[㎢당]") %>%
+  mutate(new16 = case_when(!is.na(X2016.년) ~ X2016.년,
+                             is.na(X2016.년) ~ X2015.년,
+                             TRUE ~ NA_real_),
+         new17 = case_when(!is.na(X2017.년) ~ X2017.년,
+                             is.na(X2017.년) ~ X2016.년,
+                             TRUE ~ NA_real_),
+         density = case_when(!is.na(new17) ~ new17,
+                             is.na(new17) ~ new16,
+                             TRUE ~ NA_real_)) %>%
+  select(1, 10)
+names(pop_density) <- c("Country", "pop_density")
+  # density는 NA가 아닌 가장 최신 데이터
+
+```
+
+<br>
+
+#### 1.2. Response Variables : Model Parameters
+
+```{r}
+
+model_parameter <- read_xlsx("model fitting result.xlsx")[2:41,1:11]
+parameter <- data.frame(cbind(model_parameter[1], sapply(model_parameter[, c(2:11)], as.numeric)))
+
+names(parameter) <- c("Country", "Max Cases", "a_Log", "b_Log", "c_Log", 
+                      "a_Ber", "b_Ber", "c_Ber", "a_Gom", "b_Gom", "c_Gom")
+
+parameter[1] <- c("미국", "스페인", "이탈리아", "독일", "영국", "터키", "중국", "이란", "러시아", "브라질",
+                  "벨기에", "캐나다", "네덜란드", "스위스", "포르투갈", "아일랜드", "스웨덴", "일본", "한국", 
+                  "칠레", "에콰도르", "사우디아라비아", "파키스탄", "멕시코", "덴마크", "노르웨이", "체코", 
+                  "오스트레일리아", "싱가포르", "인도네시아", "세르비아", "필리핀", "말레이시아", "도미니카공화국",
+                  "파나마", "콜롬비아", "핀란드", "룩셈부르크", "태국", "아프가니스탄")
+
+str(data)
+
+data <- left_join(parameter, child_vaccination, by = "Country") %>%
+  left_join(GNI, by = "Country") %>%
+  left_join(HDI, by = "Country") %>%
+  left_join(life_expectancy, by = "Country") %>%
+  left_join(malnutrition, by = "Country") %>%
+  left_join(pop_density, by = "Country") %>%
+  left_join(urbanization, by = "Country") %>%
+  left_join(saving_rate, by = "Country") %>%
+  left_join(moving_rate, by = "Country")
+
+write.csv(data, "data_고영현.csv")
+
+```
+
+<br>
+<br>
+
+### 2. Scatter Plot
+
+<br>
+
+#### 2.1. Scatter Plot with a_Log
+```{r, warning=FALSE}
+# pop_density에 log취함
+
+par(mfrow = c(3,3))
+
+plot(data$a_Log, data$GNI); plot(data$a_Log, data$HDI); plot(data$a_Log, data$child_vaccination)
+plot(data$a_Log, log(data$pop_density)); plot(data$a_Log, data$life_expectancy); plot(data$a_Log, data$saving_rate)
+plot(data$a_Log, data$urbanization); plot(data$a_Log, data$malnutrition); plot(data$a_Log, data$moving_rate)
+
+
+# Log scale
+plot(log(data$a_Log), data$GNI); plot(log(data$a_Log), data$HDI); plot(log(data$a_Log), data$child_vaccination)
+plot(log(data$a_Log), log(data$pop_density)); plot(log(data$a_Log), data$life_expectancy); plot(log(data$a_Log), data$saving_rate)
+plot(log(data$a_Log), data$urbanization); plot(log(data$a_Log), data$malnutrition); plot(log(data$a_Log), data$moving_rate)
+
+
+a_Log_data <- data %>%
+  select(3, 12:20) %>%
+  mutate(a_Log = log(a_Log))
+
+ggpairs(a_Log_data)
+
+```
+
+<br>
+
+#### 2.2. Scatter Plot with b_Log
+
+```{r, warning=FALSE}
+par(mfrow = c(3,3))
+
+plot(data$b_Log, data$GNI); plot(data$b_Log, data$HDI); plot(data$b_Log, data$child_vaccination)
+plot(data$b_Log, log(data$pop_density)); plot(data$b_Log, data$life_expectancy); plot(data$b_Log, data$saving_rate)
+plot(data$b_Log, data$urbanization); plot(data$b_Log, data$malnutrition); plot(data$b_Log, data$moving_rate)
+
+# Log scale
+plot(log(data$b_Log), data$GNI); plot(log(data$b_Log), data$HDI); plot(log(data$b_Log), data$child_vaccination)
+plot(log(data$b_Log), log(data$pop_density)); plot(log(data$b_Log), data$life_expectancy); plot(log(data$b_Log), data$saving_rate)
+plot(log(data$b_Log), data$urbanization); plot(log(data$b_Log), data$malnutrition); plot(log(data$b_Log), data$moving_rate)
+
+
+b_Log_data <- data %>%
+  select(4, 12:20) %>%
+  mutate(b_Log = log(b_Log))
+
+ggpairs(b_Log_data)
+```
+
+<br>
+
+#### 2.3. Scatter Plot with c_Log
+
+```{r, warning=FALSE}
+par(mfrow = c(3,3))
+
+plot(data$c_Log, data$GNI); plot(data$c_Log, data$HDI); plot(data$c_Log, data$child_vaccination)
+plot(data$c_Log, log(data$pop_density)); plot(data$c_Log, data$life_expectancy); plot(data$c_Log, data$saving_rate)
+plot(data$c_Log, data$urbanization); plot(data$c_Log, data$malnutrition); plot(data$c_Log, data$moving_rate)
+
+# Log scale
+plot(log(data$c_Log), data$GNI); plot(log(data$c_Log), data$HDI); plot(log(data$c_Log), data$child_vaccination)
+plot(log(data$c_Log), log(data$pop_density)); plot(log(data$c_Log), data$life_expectancy); plot(log(data$c_Log), data$saving_rate)
+plot(log(data$c_Log), data$urbanization); plot(log(data$c_Log), data$malnutrition); plot(log(data$c_Log), data$moving_rate)
+
+
+c_Log_data <- data %>%
+  select(5, 12:20) %>%
+  mutate(c_Log = log(c_Log))
+
+ggpairs(c_Log_data)
+```
+
+<br>
+<br>
+
+### 3. Simple Linear Regression
+
+<br>
+
+#### 3.1. SLR with a_Log
+
+```{r, eval = FALSE}
+
+fit_a_Log_1 <- lm(a_Log ~ child_vaccination, data = data); summary(fit_a_Log_1) 
+fit_a_Log_2 <- lm(a_Log ~ GNI, data = data); summary(fit_a_Log_2)
+fit_a_Log_3 <- lm(a_Log ~ HDI, data = data); summary(fit_a_Log_3) 
+fit_a_Log_4 <- lm(a_Log ~ life_expectancy, data = data); summary(fit_a_Log_4)
+fit_a_Log_5 <- lm(a_Log ~ malnutrition, data = data); summary(fit_a_Log_5) 
+fit_a_Log_6 <- lm(a_Log ~ pop_density, data = data); summary(fit_a_Log_6)
+fit_a_Log_7 <- lm(a_Log ~ saving_rate, data = data); summary(fit_a_Log_7)
+fit_a_Log_8 <- lm(a_Log ~ moving_rate, data = data); summary(fit_a_Log_8)
+fit_a_Log_9 <- lm(a_Log ~ urbanization, data = data); summary(fit_a_Log_9) 
+
+
+fit_a_Log_1 <- lm(log(a_Log) ~ child_vaccination, data = data); summary(fit_a_Log_1) ###
+fit_a_Log_2 <- lm(log(a_Log) ~ GNI, data = data); summary(fit_a_Log_2)
+fit_a_Log_3 <- lm(log(a_Log) ~ HDI, data = data); summary(fit_a_Log_3) ###
+fit_a_Log_4 <- lm(log(a_Log) ~ life_expectancy, data = data); summary(fit_a_Log_4) ##
+fit_a_Log_5 <- lm(log(a_Log) ~ malnutrition, data = data); summary(fit_a_Log_5) ##
+fit_a_Log_6 <- lm(log(a_Log) ~ pop_density, data = data); summary(fit_a_Log_6)
+fit_a_Log_7 <- lm(log(a_Log) ~ saving_rate, data = data); summary(fit_a_Log_7)
+fit_a_Log_8 <- lm(log(a_Log) ~ moving_rate, data = data); summary(fit_a_Log_8)
+fit_a_Log_9 <- lm(log(a_Log) ~ urbanization, data = data); summary(fit_a_Log_9) ##
+
+# p-value : HDI < 유아접종률 < 도시화 < 영양실조 < 기대수명
+
+```
+
+<br>
+
+#### 3.2. SLR with b_Log
+
+```{r, eval = FALSE}
+
+fit_b_Log_1 <- lm(b_Log ~ child_vaccination, data = data); summary(fit_b_Log_1) 
+fit_b_Log_2 <- lm(b_Log ~ GNI, data = data); summary(fit_b_Log_2) #
+fit_b_Log_3 <- lm(b_Log ~ HDI, data = data); summary(fit_b_Log_3) #
+fit_b_Log_4 <- lm(b_Log ~ life_expectancy, data = data); summary(fit_b_Log_4) 
+fit_b_Log_5 <- lm(b_Log ~ malnutrition, data = data); summary(fit_b_Log_5) #
+fit_b_Log_6 <- lm(b_Log ~ pop_density, data = data); summary(fit_b_Log_6)
+fit_b_Log_7 <- lm(b_Log ~ saving_rate, data = data); summary(fit_b_Log_7)
+fit_b_Log_8 <- lm(b_Log ~ moving_rate, data = data); summary(fit_b_Log_8) ##
+fit_b_Log_9 <- lm(b_Log ~ urbanization, data = data); summary(fit_b_Log_9) #
+
+
+fit_b_Log_1 <- lm(log(b_Log) ~ child_vaccination, data = data); summary(fit_b_Log_1) 
+fit_b_Log_2 <- lm(log(b_Log) ~ GNI, data = data); summary(fit_b_Log_2) #
+fit_b_Log_3 <- lm(log(b_Log) ~ HDI, data = data); summary(fit_b_Log_3) #
+fit_b_Log_4 <- lm(log(b_Log) ~ life_expectancy, data = data); summary(fit_b_Log_4) 
+fit_b_Log_5 <- lm(log(b_Log) ~ malnutrition, data = data); summary(fit_b_Log_5) ##
+fit_b_Log_6 <- lm(log(b_Log) ~ pop_density, data = data); summary(fit_b_Log_6)
+fit_b_Log_7 <- lm(log(b_Log) ~ saving_rate, data = data); summary(fit_b_Log_7)
+fit_b_Log_8 <- lm(log(b_Log) ~ moving_rate, data = data); summary(fit_b_Log_8) ##
+fit_b_Log_9 <- lm(log(b_Log) ~ urbanization, data = data); summary(fit_b_Log_9) ##
+
+# p-value : 도시화 < 순이동률 < 영양실조 < GNI < HDI
+
+```
+
+<br>
+
+#### 3.3. SLR with c_Log
+
+```{r, eval = FALSE}
+
+fit_c_Log_1 <- lm(c_Log ~ child_vaccination, data = data); summary(fit_c_Log_1) ##
+fit_c_Log_2 <- lm(c_Log ~ GNI, data = data); summary(fit_c_Log_2) 
+fit_c_Log_3 <- lm(c_Log ~ HDI, data = data); summary(fit_c_Log_3) 
+fit_c_Log_4 <- lm(c_Log ~ life_expectancy, data = data); summary(fit_c_Log_4) 
+fit_c_Log_5 <- lm(c_Log ~ malnutrition, data = data); summary(fit_c_Log_5)
+fit_c_Log_6 <- lm(c_Log ~ pop_density, data = data); summary(fit_c_Log_6)
+fit_c_Log_7 <- lm(c_Log ~ saving_rate, data = data); summary(fit_c_Log_7)
+fit_c_Log_8 <- lm(c_Log ~ moving_rate, data = data); summary(fit_c_Log_8) ###
+fit_c_Log_9 <- lm(c_Log ~ urbanization, data = data); summary(fit_c_Log_9) 
+
+
+fit_c_Log_1 <- lm(log(c_Log) ~ child_vaccination, data = data); summary(fit_c_Log_1) #
+fit_c_Log_2 <- lm(log(c_Log) ~ GNI, data = data); summary(fit_c_Log_2) 
+fit_c_Log_3 <- lm(log(c_Log) ~ HDI, data = data); summary(fit_c_Log_3) 
+fit_c_Log_4 <- lm(log(c_Log) ~ life_expectancy, data = data); summary(fit_c_Log_4) 
+fit_c_Log_5 <- lm(log(c_Log) ~ malnutrition, data = data); summary(fit_c_Log_5)
+fit_c_Log_6 <- lm(log(c_Log) ~ pop_density, data = data); summary(fit_c_Log_6)
+fit_c_Log_7 <- lm(log(c_Log) ~ saving_rate, data = data); summary(fit_c_Log_7)
+fit_c_Log_8 <- lm(log(c_Log) ~ moving_rate, data = data); summary(fit_c_Log_8) ###
+fit_c_Log_9 <- lm(log(c_Log) ~ urbanization, data = data); summary(fit_c_Log_9) 
+
+# p-value : 순이동률 < 유아접종률
+
+```
+
+<br>
+<br>
+
+### 4. Mulple Linear Regression
+
+<br>
+
+#### 4.1. MLR with a_Log
+
+```{r, eval = FALSE}
+
+# SLR p-value : HDI < 유아접종률 < 도시화 < 영양실조 < 기대수명
+
+cor.test(data$HDI, data$child_vaccination)
+fit_a_Log_1a <- lm(log(a_Log) ~ HDI * child_vaccination, data = data); summary(fit_a_Log_1a)
+
+cor.test(data$HDI, data$urbanization)
+fit_a_Log_1b <- lm(log(a_Log) ~ HDI * urbanization, data = data); summary(fit_a_Log_1b)
+
+cor.test(data$HDI, data$malnutrition)
+fit_a_Log_1c <- lm(log(a_Log) ~ HDI * malnutrition, data = data); summary(fit_a_Log_1c)
+
+cor.test(data$HDI, data$life_expectancy)
+fit_a_Log_1d <- lm(log(a_Log) ~ HDI * life_expectancy, data = data); summary(fit_a_Log_1d)
+
+
+fit_a_Log_5s <- lm(log(a_Log) ~ HDI + life_expectancy + urbanization + malnutrition + child_vaccination, data = data); summary(fit_a_Log_5s)
+
+```
+
+<br>
+
+#### 4.2. MLR with b_Log
+
+```{r, eval = FALSE}
+
+# SLR p-value : 도시화 < 순이동률 < 영양실조 < GNI < HDI
+
+fit_b_Log_1aa <- lm(log(b_Log) ~ urbanization * moving_rate, data = data); summary(fit_b_Log_1aa)
+fit_b_Log_1a <- lm(log(b_Log) ~ urbanization + moving_rate, data = data); summary(fit_b_Log_1a)
+
+cor.test(data$HDI, data$urbanization)
+fit_b_Log_1b <- lm(log(b_Log) ~ HDI * urbanization, data = data); summary(fit_b_Log_1b)
+
+cor.test(data$HDI, data$malnutrition)
+fit_b_Log_1c <- lm(log(b_Log) ~ HDI * malnutrition, data = data); summary(fit_b_Log_1c)
+
+cor.test(data$HDI, data$life_expectancy)
+fit_b_Log_1d <- lm(log(b_Log) ~ HDI * life_expectancy, data = data); summary(fit_b_Log_1d)
+
+
+fit_b_Log_5s <- lm(log(b_Log) ~ HDI + life_expectancy + urbanization + malnutrition + child_vaccination, data = data); summary(fit_b_Log_5s)
+
+```
