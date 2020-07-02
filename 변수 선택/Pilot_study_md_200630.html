@@ -383,13 +383,13 @@ summary {
 
 
 <p><br> <br></p>
-<pre><code>## -- Attaching packages ------------------------------------------------------------------- tidyverse 1.2.1 --</code></pre>
+<pre><code>## -- Attaching packages ---------- tidyverse 1.2.1 --</code></pre>
 <pre><code>## √ ggplot2 3.2.1     √ purrr   0.3.2
 ## √ tibble  2.1.3     √ dplyr   0.8.5
 ## √ tidyr   1.0.0     √ stringr 1.4.0
 ## √ readr   1.3.1     √ forcats 0.4.0</code></pre>
 <pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.6.3</code></pre>
-<pre><code>## -- Conflicts ---------------------------------------------------------------------- tidyverse_conflicts() --
+<pre><code>## -- Conflicts ------------- tidyverse_conflicts() --
 ## x dplyr::filter() masks stats::filter()
 ## x dplyr::lag()    masks stats::lag()</code></pre>
 <pre><code>## Registered S3 method overwritten by &#39;GGally&#39;:
@@ -406,52 +406,52 @@ summary {
 <p><br></p>
 <div id="explanatory-variables" class="section level4">
 <h4>1.1. Explanatory Variables</h4>
-<pre class="r"><code>saving_rate &lt;- read.csv(&quot;GDP대비 저축률.csv&quot;, header = TRUE) %&gt;% 
+<pre class="r"><code>saving_rate &lt;- read.csv(&quot;후보변수\\GDP대비 저축률.csv&quot;, header = TRUE) %&gt;% 
   select(1, 5)
 names(saving_rate) &lt;- c(&quot;Country&quot;, &quot;saving_rate&quot;)
 
 
-GNI &lt;- read.csv(&quot;국민총소득.csv&quot;, header = TRUE) %&gt;% 
+GNI &lt;- read.csv(&quot;후보변수\\국민총소득.csv&quot;, header = TRUE) %&gt;% 
   select(1, 5)
 names(GNI) &lt;- c(&quot;Country&quot;, &quot;GNI&quot;)
 
 
-life_expectancy &lt;- read.csv(&quot;기대수명.csv&quot;, header = TRUE) %&gt;% 
+life_expectancy &lt;- read.csv(&quot;후보변수\\기대수명.csv&quot;, header = TRUE) %&gt;% 
   filter(성별 == &quot;합계&quot;) %&gt;%
   select(1, 7)
 names(life_expectancy) &lt;- c(&quot;Country&quot;, &quot;life_expectancy&quot;)
 
 
-urbanization &lt;- read.csv(&quot;도시화율.csv&quot;, header = TRUE) %&gt;% 
+urbanization &lt;- read.csv(&quot;후보변수\\도시화율.csv&quot;, header = TRUE) %&gt;% 
   select(1, 7)
 names(urbanization) &lt;- c(&quot;Country&quot;, &quot;urbanization&quot;)
 
 
-moving_rate &lt;- read.csv(&quot;순이동률.csv&quot;, header = TRUE) %&gt;% 
+moving_rate &lt;- read.csv(&quot;후보변수\\순이동률.csv&quot;, header = TRUE) %&gt;% 
   select(1, 6)
 names(moving_rate) &lt;- c(&quot;Country&quot;, &quot;moving_rate&quot;)
   # 순이동률 : 단위인구에서 전입자 수 - 전출자 수
 
 
-malnutrition &lt;- read.csv(&quot;영양부족_인구비율.csv&quot;, header = TRUE) %&gt;%
+malnutrition &lt;- read.csv(&quot;후보변수\\영양부족_인구비율.csv&quot;, header = TRUE) %&gt;%
   select(2, 7)
 names(malnutrition) &lt;- c(&quot;Country&quot;, &quot;malnutrition&quot;)
 
 
-HDI &lt;- read.csv(&quot;인간개발지수.csv&quot;, header = TRUE) %&gt;%
+HDI &lt;- read.csv(&quot;후보변수\\인간개발지수.csv&quot;, header = TRUE) %&gt;%
   filter(항목 == &quot;인간개발지수&quot;) %&gt;%
   select(1, 6)
 names(HDI) &lt;- c(&quot;Country&quot;, &quot;HDI&quot;)
 
 
-child_vaccination &lt;- read.csv(&quot;유아접종률.csv&quot;, header = TRUE) %&gt;%
+child_vaccination &lt;- read.csv(&quot;후보변수\\유아접종률.csv&quot;, header = TRUE) %&gt;%
   filter(항목 %in% c(&quot;유아접종률-홍역[%]&quot;, &quot;유아접종률-DPT[%]&quot;)) %&gt;%
   select(1, 2, 6) %&gt;%
   group_by(국가별) %&gt;% summarise(유아접종률 = mean(X2017.년))
 names(child_vaccination) &lt;- c(&quot;Country&quot;, &quot;child_vaccination&quot;)
 
 
-pop_density &lt;- read.csv(&quot;인구밀도.csv&quot;, header = TRUE) %&gt;%
+pop_density &lt;- read.csv(&quot;후보변수\\인구밀도.csv&quot;, header = TRUE) %&gt;%
   filter(항목 == &quot;인구밀도[㎢당]&quot;) %&gt;%
   mutate(new16 = case_when(!is.na(X2016.년) ~ X2016.년,
                              is.na(X2016.년) ~ X2015.년,
@@ -702,6 +702,100 @@ fit_c_Log_8 &lt;- lm(log(c_Log) ~ moving_rate, data = data); summary(fit_c_Log_8
 fit_c_Log_9 &lt;- lm(log(c_Log) ~ urbanization, data = data); summary(fit_c_Log_9) 
 
 # p-value : 순이동률 &lt; 유아접종률</code></pre>
+<p><br></p>
+</div>
+<div id="slr-with-a_ber" class="section level4">
+<h4>3.4. SLR with a_Ber</h4>
+<pre class="r"><code>fit_a_Ber_1 &lt;- lm(a_Ber ~ child_vaccination, data = data); summary(fit_a_Ber_1) 
+fit_a_Ber_2 &lt;- lm(a_Ber ~ GNI, data = data); summary(fit_a_Ber_2)
+fit_a_Ber_3 &lt;- lm(a_Ber ~ HDI, data = data); summary(fit_a_Ber_3) 
+fit_a_Ber_4 &lt;- lm(a_Ber ~ life_expectancy, data = data); summary(fit_a_Ber_4)
+fit_a_Ber_5 &lt;- lm(a_Ber ~ malnutrition, data = data); summary(fit_a_Ber_5) 
+fit_a_Ber_6 &lt;- lm(a_Ber ~ pop_density, data = data); summary(fit_a_Ber_6)
+fit_a_Ber_7 &lt;- lm(a_Ber ~ saving_rate, data = data); summary(fit_a_Ber_7)
+fit_a_Ber_8 &lt;- lm(a_Ber ~ moving_rate, data = data); summary(fit_a_Ber_8)
+fit_a_Ber_9 &lt;- lm(a_Ber ~ urbanization, data = data); summary(fit_a_Ber_9) </code></pre>
+<p><br></p>
+</div>
+<div id="slr-with-b_ber" class="section level4">
+<h4>3.5. SLR with b_Ber</h4>
+<pre class="r"><code>fit_b_Ber_1 &lt;- lm(b_Ber ~ child_vaccination, data = data); summary(fit_b_Ber_1) 
+fit_b_Ber_2 &lt;- lm(b_Ber ~ GNI, data = data); summary(fit_b_Ber_2) #
+fit_b_Ber_3 &lt;- lm(b_Ber ~ HDI, data = data); summary(fit_b_Ber_3) #
+fit_b_Ber_4 &lt;- lm(b_Ber ~ life_expectancy, data = data); summary(fit_b_Ber_4) 
+fit_b_Ber_5 &lt;- lm(b_Ber ~ malnutrition, data = data); summary(fit_b_Ber_5) #
+fit_b_Ber_6 &lt;- lm(b_Ber ~ pop_density, data = data); summary(fit_b_Ber_6)
+fit_b_Ber_7 &lt;- lm(b_Ber ~ saving_rate, data = data); summary(fit_b_Ber_7)
+fit_b_Ber_8 &lt;- lm(b_Ber ~ moving_rate, data = data); summary(fit_b_Ber_8) ##
+fit_b_Ber_9 &lt;- lm(b_Ber ~ urbanization, data = data); summary(fit_b_Ber_9) #</code></pre>
+<p><br></p>
+</div>
+<div id="slr-with-c_ber" class="section level4">
+<h4>3.6. SLR with c_Ber</h4>
+<pre class="r"><code>fit_c_Ber_1 &lt;- lm(c_Ber ~ child_vaccination, data = data); summary(fit_c_Ber_1) ##
+fit_c_Ber_2 &lt;- lm(c_Ber ~ GNI, data = data); summary(fit_c_Ber_2) 
+fit_c_Ber_3 &lt;- lm(c_Ber ~ HDI, data = data); summary(fit_c_Ber_3) 
+fit_c_Ber_4 &lt;- lm(c_Ber ~ life_expectancy, data = data); summary(fit_c_Ber_4) 
+fit_c_Ber_5 &lt;- lm(c_Ber ~ malnutrition, data = data); summary(fit_c_Ber_5)
+fit_c_Ber_6 &lt;- lm(c_Ber ~ pop_density, data = data); summary(fit_c_Ber_6)
+fit_c_Ber_7 &lt;- lm(c_Ber ~ saving_rate, data = data); summary(fit_c_Ber_7)
+fit_c_Ber_8 &lt;- lm(c_Ber ~ moving_rate, data = data); summary(fit_c_Ber_8) ###
+fit_c_Ber_9 &lt;- lm(c_Ber ~ urbanization, data = data); summary(fit_c_Ber_9) </code></pre>
+<p><br></p>
+</div>
+<div id="slr-with-a_gom" class="section level4">
+<h4>3.7. SLR with a_Gom</h4>
+<pre class="r"><code>fit_a_Gom_1 &lt;- lm(a_Gom ~ child_vaccination, data = data); summary(fit_a_Gom_1) 
+fit_a_Gom_2 &lt;- lm(a_Gom ~ GNI, data = data); summary(fit_a_Gom_2)
+fit_a_Gom_3 &lt;- lm(a_Gom ~ HDI, data = data); summary(fit_a_Gom_3) 
+fit_a_Gom_4 &lt;- lm(a_Gom ~ life_expectancy, data = data); summary(fit_a_Gom_4)
+fit_a_Gom_5 &lt;- lm(a_Gom ~ malnutrition, data = data); summary(fit_a_Gom_5) 
+fit_a_Gom_6 &lt;- lm(a_Gom ~ pop_density, data = data); summary(fit_a_Gom_6)
+fit_a_Gom_7 &lt;- lm(a_Gom ~ saving_rate, data = data); summary(fit_a_Gom_7)
+fit_a_Gom_8 &lt;- lm(a_Gom ~ moving_rate, data = data); summary(fit_a_Gom_8)
+fit_a_Gom_9 &lt;- lm(a_Gom ~ urbanization, data = data); summary(fit_a_Gom_9) </code></pre>
+<p><br></p>
+</div>
+<div id="slr-with-b_gom" class="section level4">
+<h4>3.8. SLR with b_Gom</h4>
+<pre class="r"><code>fit_b_Gom_1 &lt;- lm(b_Gom ~ child_vaccination, data = data); summary(fit_b_Gom_1) 
+
+fit_b_Gom_2 &lt;- lm(b_Gom ~ GNI, data = data); summary(fit_b_Gom_2) 
+
+fit_b_Gom_3 &lt;- lm(b_Gom ~ HDI, data = data); summary(fit_b_Gom_3) 
+
+fit_b_Gom_4 &lt;- lm(b_Gom ~ life_expectancy, data = data); summary(fit_b_Gom_4) 
+
+fit_b_Gom_5 &lt;- lm(b_Gom ~ malnutrition, data = data); summary(fit_b_Gom_5) 
+
+fit_b_Gom_6 &lt;- lm(b_Gom ~ pop_density, data = data); summary(fit_b_Gom_6)
+
+fit_b_Gom_7 &lt;- lm(b_Gom ~ saving_rate, data = data); summary(fit_b_Gom_7)
+
+fit_b_Gom_8 &lt;- lm(b_Gom ~ moving_rate, data = data); summary(fit_b_Gom_8) 
+
+fit_b_Gom_9 &lt;- lm(b_Gom ~ urbanization, data = data); summary(fit_b_Gom_9) </code></pre>
+<p><br></p>
+</div>
+<div id="slr-with-c_gom" class="section level4">
+<h4>3.9 SLR with c_Gom</h4>
+<pre class="r"><code>fit_c_Gom_1 &lt;- lm(c_Gom ~ child_vaccination, data = data); summary(fit_c_Gom_1) 
+
+fit_c_Gom_2 &lt;- lm(c_Gom ~ GNI, data = data); summary(fit_c_Gom_2) 
+
+fit_c_Gom_3 &lt;- lm(c_Gom ~ HDI, data = data); summary(fit_c_Gom_3) 
+
+fit_c_Gom_4 &lt;- lm(c_Gom ~ life_expectancy, data = data); summary(fit_c_Gom_4) 
+
+fit_c_Gom_5 &lt;- lm(c_Gom ~ malnutrition, data = data); summary(fit_c_Gom_5)
+
+fit_c_Gom_6 &lt;- lm(c_Gom ~ pop_density, data = data); summary(fit_c_Gom_6)
+
+fit_c_Gom_7 &lt;- lm(c_Gom ~ saving_rate, data = data); summary(fit_c_Gom_7)
+
+fit_c_Gom_8 &lt;- lm(c_Gom ~ moving_rate, data = data); summary(fit_c_Gom_8) 
+
+fit_c_Gom_9 &lt;- lm(c_Gom ~ urbanization, data = data); summary(fit_c_Gom_9) </code></pre>
 <p><br> <br></p>
 </div>
 </div>
@@ -722,7 +816,30 @@ cor.test(data$HDI, data$malnutrition)
 fit_a_Log_1c &lt;- lm(log(a_Log) ~ HDI * malnutrition, data = data); summary(fit_a_Log_1c)
 
 cor.test(data$HDI, data$life_expectancy)
-fit_a_Log_1d &lt;- lm(log(a_Log) ~ HDI * life_expectancy, data = data); summary(fit_a_Log_1d)</code></pre>
+fit_a_Log_1d &lt;- lm(log(a_Log) ~ HDI * life_expectancy, data = data); summary(fit_a_Log_1d)
+
+
+fit_a_Log_5s &lt;- lm(log(a_Log) ~ HDI + life_expectancy + urbanization + malnutrition + child_vaccination, data = data); summary(fit_a_Log_5s)</code></pre>
+<p><br></p>
+</div>
+<div id="mlr-with-b_log" class="section level4">
+<h4>4.2. MLR with b_Log</h4>
+<pre class="r"><code># SLR p-value : 도시화 &lt; 순이동률 &lt; 영양실조 &lt; GNI &lt; HDI
+
+fit_b_Log_1aa &lt;- lm(log(b_Log) ~ urbanization * moving_rate, data = data); summary(fit_b_Log_1aa)
+fit_b_Log_1a &lt;- lm(log(b_Log) ~ urbanization + moving_rate, data = data); summary(fit_b_Log_1a)
+
+cor.test(data$HDI, data$urbanization)
+fit_b_Log_1b &lt;- lm(log(b_Log) ~ HDI * urbanization, data = data); summary(fit_b_Log_1b)
+
+cor.test(data$HDI, data$malnutrition)
+fit_b_Log_1c &lt;- lm(log(b_Log) ~ HDI * malnutrition, data = data); summary(fit_b_Log_1c)
+
+cor.test(data$HDI, data$life_expectancy)
+fit_b_Log_1d &lt;- lm(log(b_Log) ~ HDI * life_expectancy, data = data); summary(fit_b_Log_1d)
+
+
+fit_b_Log_5s &lt;- lm(log(b_Log) ~ HDI + life_expectancy + urbanization + malnutrition + child_vaccination, data = data); summary(fit_b_Log_5s)</code></pre>
 </div>
 </div>
 

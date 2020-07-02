@@ -18,7 +18,7 @@ library(tidyverse)
 library(readxl)
 library(GGally)
 
-setwd("C:\\Users\\1234\\Desktop\\고영현\\수업\\인턴십\\변수 데이터")
+setwd("C:\\Users\\1234\\Documents\\GitHub\\COVID-19")
 ```
 
 
@@ -33,52 +33,52 @@ setwd("C:\\Users\\1234\\Desktop\\고영현\\수업\\인턴십\\변수 데이터"
 
 ```{r}
 
-saving_rate <- read.csv("GDP대비 저축률.csv", header = TRUE) %>% 
+saving_rate <- read.csv("후보변수\\GDP대비 저축률.csv", header = TRUE) %>% 
   select(1, 5)
 names(saving_rate) <- c("Country", "saving_rate")
 
 
-GNI <- read.csv("국민총소득.csv", header = TRUE) %>% 
+GNI <- read.csv("후보변수\\국민총소득.csv", header = TRUE) %>% 
   select(1, 5)
 names(GNI) <- c("Country", "GNI")
 
 
-life_expectancy <- read.csv("기대수명.csv", header = TRUE) %>% 
+life_expectancy <- read.csv("후보변수\\기대수명.csv", header = TRUE) %>% 
   filter(성별 == "합계") %>%
   select(1, 7)
 names(life_expectancy) <- c("Country", "life_expectancy")
 
 
-urbanization <- read.csv("도시화율.csv", header = TRUE) %>% 
+urbanization <- read.csv("후보변수\\도시화율.csv", header = TRUE) %>% 
   select(1, 7)
 names(urbanization) <- c("Country", "urbanization")
 
 
-moving_rate <- read.csv("순이동률.csv", header = TRUE) %>% 
+moving_rate <- read.csv("후보변수\\순이동률.csv", header = TRUE) %>% 
   select(1, 6)
 names(moving_rate) <- c("Country", "moving_rate")
   # 순이동률 : 단위인구에서 전입자 수 - 전출자 수
 
 
-malnutrition <- read.csv("영양부족_인구비율.csv", header = TRUE) %>%
+malnutrition <- read.csv("후보변수\\영양부족_인구비율.csv", header = TRUE) %>%
   select(2, 7)
 names(malnutrition) <- c("Country", "malnutrition")
 
 
-HDI <- read.csv("인간개발지수.csv", header = TRUE) %>%
+HDI <- read.csv("후보변수\\인간개발지수.csv", header = TRUE) %>%
   filter(항목 == "인간개발지수") %>%
   select(1, 6)
 names(HDI) <- c("Country", "HDI")
 
 
-child_vaccination <- read.csv("유아접종률.csv", header = TRUE) %>%
+child_vaccination <- read.csv("후보변수\\유아접종률.csv", header = TRUE) %>%
   filter(항목 %in% c("유아접종률-홍역[%]", "유아접종률-DPT[%]")) %>%
   select(1, 2, 6) %>%
   group_by(국가별) %>% summarise(유아접종률 = mean(X2017.년))
 names(child_vaccination) <- c("Country", "child_vaccination")
 
 
-pop_density <- read.csv("인구밀도.csv", header = TRUE) %>%
+pop_density <- read.csv("후보변수\\인구밀도.csv", header = TRUE) %>%
   filter(항목 == "인구밀도[㎢당]") %>%
   mutate(new16 = case_when(!is.na(X2016.년) ~ X2016.년,
                              is.na(X2016.년) ~ X2015.년,
@@ -304,6 +304,132 @@ fit_c_Log_8 <- lm(log(c_Log) ~ moving_rate, data = data); summary(fit_c_Log_8) #
 fit_c_Log_9 <- lm(log(c_Log) ~ urbanization, data = data); summary(fit_c_Log_9) 
 
 # p-value : 순이동률 < 유아접종률
+
+```
+
+<br>
+
+#### 3.4. SLR with a_Ber
+
+```{r, eval = FALSE}
+
+fit_a_Ber_1 <- lm(a_Ber ~ child_vaccination, data = data); summary(fit_a_Ber_1) 
+fit_a_Ber_2 <- lm(a_Ber ~ GNI, data = data); summary(fit_a_Ber_2)
+fit_a_Ber_3 <- lm(a_Ber ~ HDI, data = data); summary(fit_a_Ber_3) 
+fit_a_Ber_4 <- lm(a_Ber ~ life_expectancy, data = data); summary(fit_a_Ber_4)
+fit_a_Ber_5 <- lm(a_Ber ~ malnutrition, data = data); summary(fit_a_Ber_5) 
+fit_a_Ber_6 <- lm(a_Ber ~ pop_density, data = data); summary(fit_a_Ber_6)
+fit_a_Ber_7 <- lm(a_Ber ~ saving_rate, data = data); summary(fit_a_Ber_7)
+fit_a_Ber_8 <- lm(a_Ber ~ moving_rate, data = data); summary(fit_a_Ber_8)
+fit_a_Ber_9 <- lm(a_Ber ~ urbanization, data = data); summary(fit_a_Ber_9) 
+
+```
+
+<br>
+
+#### 3.5. SLR with b_Ber
+
+```{r, eval = FALSE}
+
+fit_b_Ber_1 <- lm(b_Ber ~ child_vaccination, data = data); summary(fit_b_Ber_1) 
+fit_b_Ber_2 <- lm(b_Ber ~ GNI, data = data); summary(fit_b_Ber_2) #
+fit_b_Ber_3 <- lm(b_Ber ~ HDI, data = data); summary(fit_b_Ber_3) #
+fit_b_Ber_4 <- lm(b_Ber ~ life_expectancy, data = data); summary(fit_b_Ber_4) 
+fit_b_Ber_5 <- lm(b_Ber ~ malnutrition, data = data); summary(fit_b_Ber_5) #
+fit_b_Ber_6 <- lm(b_Ber ~ pop_density, data = data); summary(fit_b_Ber_6)
+fit_b_Ber_7 <- lm(b_Ber ~ saving_rate, data = data); summary(fit_b_Ber_7)
+fit_b_Ber_8 <- lm(b_Ber ~ moving_rate, data = data); summary(fit_b_Ber_8) ##
+fit_b_Ber_9 <- lm(b_Ber ~ urbanization, data = data); summary(fit_b_Ber_9) #
+
+
+```
+
+<br>
+
+#### 3.6. SLR with c_Ber
+
+```{r, eval = FALSE}
+
+fit_c_Ber_1 <- lm(c_Ber ~ child_vaccination, data = data); summary(fit_c_Ber_1) ##
+fit_c_Ber_2 <- lm(c_Ber ~ GNI, data = data); summary(fit_c_Ber_2) 
+fit_c_Ber_3 <- lm(c_Ber ~ HDI, data = data); summary(fit_c_Ber_3) 
+fit_c_Ber_4 <- lm(c_Ber ~ life_expectancy, data = data); summary(fit_c_Ber_4) 
+fit_c_Ber_5 <- lm(c_Ber ~ malnutrition, data = data); summary(fit_c_Ber_5)
+fit_c_Ber_6 <- lm(c_Ber ~ pop_density, data = data); summary(fit_c_Ber_6)
+fit_c_Ber_7 <- lm(c_Ber ~ saving_rate, data = data); summary(fit_c_Ber_7)
+fit_c_Ber_8 <- lm(c_Ber ~ moving_rate, data = data); summary(fit_c_Ber_8) ###
+fit_c_Ber_9 <- lm(c_Ber ~ urbanization, data = data); summary(fit_c_Ber_9) 
+
+```
+
+<br>
+
+#### 3.7. SLR with a_Gom
+
+```{r, eval = FALSE}
+
+fit_a_Gom_1 <- lm(a_Gom ~ child_vaccination, data = data); summary(fit_a_Gom_1) 
+fit_a_Gom_2 <- lm(a_Gom ~ GNI, data = data); summary(fit_a_Gom_2)
+fit_a_Gom_3 <- lm(a_Gom ~ HDI, data = data); summary(fit_a_Gom_3) 
+fit_a_Gom_4 <- lm(a_Gom ~ life_expectancy, data = data); summary(fit_a_Gom_4)
+fit_a_Gom_5 <- lm(a_Gom ~ malnutrition, data = data); summary(fit_a_Gom_5) 
+fit_a_Gom_6 <- lm(a_Gom ~ pop_density, data = data); summary(fit_a_Gom_6)
+fit_a_Gom_7 <- lm(a_Gom ~ saving_rate, data = data); summary(fit_a_Gom_7)
+fit_a_Gom_8 <- lm(a_Gom ~ moving_rate, data = data); summary(fit_a_Gom_8)
+fit_a_Gom_9 <- lm(a_Gom ~ urbanization, data = data); summary(fit_a_Gom_9) 
+
+```
+
+<br>
+
+#### 3.8. SLR with b_Gom
+
+```{r, eval = FALSE}
+
+fit_b_Gom_1 <- lm(b_Gom ~ child_vaccination, data = data); summary(fit_b_Gom_1) 
+
+fit_b_Gom_2 <- lm(b_Gom ~ GNI, data = data); summary(fit_b_Gom_2) 
+
+fit_b_Gom_3 <- lm(b_Gom ~ HDI, data = data); summary(fit_b_Gom_3) 
+
+fit_b_Gom_4 <- lm(b_Gom ~ life_expectancy, data = data); summary(fit_b_Gom_4) 
+
+fit_b_Gom_5 <- lm(b_Gom ~ malnutrition, data = data); summary(fit_b_Gom_5) 
+
+fit_b_Gom_6 <- lm(b_Gom ~ pop_density, data = data); summary(fit_b_Gom_6)
+
+fit_b_Gom_7 <- lm(b_Gom ~ saving_rate, data = data); summary(fit_b_Gom_7)
+
+fit_b_Gom_8 <- lm(b_Gom ~ moving_rate, data = data); summary(fit_b_Gom_8) 
+
+fit_b_Gom_9 <- lm(b_Gom ~ urbanization, data = data); summary(fit_b_Gom_9) 
+
+
+```
+
+<br>
+
+#### 3.9 SLR with c_Gom
+
+```{r, eval = FALSE}
+
+fit_c_Gom_1 <- lm(c_Gom ~ child_vaccination, data = data); summary(fit_c_Gom_1) 
+
+fit_c_Gom_2 <- lm(c_Gom ~ GNI, data = data); summary(fit_c_Gom_2) 
+
+fit_c_Gom_3 <- lm(c_Gom ~ HDI, data = data); summary(fit_c_Gom_3) 
+
+fit_c_Gom_4 <- lm(c_Gom ~ life_expectancy, data = data); summary(fit_c_Gom_4) 
+
+fit_c_Gom_5 <- lm(c_Gom ~ malnutrition, data = data); summary(fit_c_Gom_5)
+
+fit_c_Gom_6 <- lm(c_Gom ~ pop_density, data = data); summary(fit_c_Gom_6)
+
+fit_c_Gom_7 <- lm(c_Gom ~ saving_rate, data = data); summary(fit_c_Gom_7)
+
+fit_c_Gom_8 <- lm(c_Gom ~ moving_rate, data = data); summary(fit_c_Gom_8) 
+
+fit_c_Gom_9 <- lm(c_Gom ~ urbanization, data = data); summary(fit_c_Gom_9) 
 
 ```
 
