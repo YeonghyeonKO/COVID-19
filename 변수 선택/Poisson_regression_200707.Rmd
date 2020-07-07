@@ -20,6 +20,7 @@ library(nls2)
 library(segmented)
 library(gridExtra)
 
+getwd()
 setwd("C:\\Users\\1234\\Documents\\GitHub\\COVID-19\\변수 선택")
 
 COVID_19 <- read.csv("COVID-19 Cases.csv")
