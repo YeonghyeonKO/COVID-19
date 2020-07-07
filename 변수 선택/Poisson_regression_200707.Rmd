@@ -1,0 +1,134 @@
+---
+title: "Poisson Regression"
+author : "고영현 (2014-19984)"
+date: '2020-07-07'
+output :
+  html_document:
+    theme: journal
+---
+
+<br>
+<br>
+
+
+```{r setup, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(knitr)
+library(nls2)
+library(segmented)
+library(gridExtra)
+
+setwd("C:\\Users\\1234\\Documents\\GitHub\\COVID-19\\변수 선택")
+
+COVID_19 <- read.csv("COVID-19 Cases.csv")
+
+```
+
+
+<br>
+<br>
+
+### 1. 브라질, 헝가리, 파라과이에 대해 glm으로 Poisson Regression
+
+<br>
+
+#### (1-1) Data Preprocessing
+
+```{r}
+
+# 필요한 col뽑기
+corona_raw <- COVID_19 %>% 
+  select(1, 3:5, 7) %>%
+  rename(Case_Type = 癤풠ase_Type) %>%
+  group_by(Country_Region, Date, Case_Type) %>%
+  summarise(Cases = sum(Cases)) %>%
+  ungroup()
+
+# 신규확진자 구하기
+corona <- corona_raw %>%
+  mutate(Date = as.Date(corona_raw$Date, '%m/%d/%Y')) %>%
+  filter(Case_Type == "Confirmed") %>%
+  arrange(Country_Region, Date) %>%
+  mutate(Days_after_First_Case = rep(0:133, 187),
+         Difference = Cases - lag(Cases, n = 1, default = 0))
+
+# difference 끝지점 예외 처리
+for(i in 0:186){
+  corona$Difference[134*i + 1] = corona$Cases[134*i + 1]
+}
+
+
+```
+
+
+<br>
+
+#### (1-2) Brazil, Hungary, Paraguay 데이터 처리 및 시각화
+
+```{r}
+
+## 국가별 데이터 전처리
+Brazil <- corona %>%
+  filter(Country_Region == "Brazil", Cases >= 1, Date <= "2020-04-19")
+X_B <- Brazil$Days_after_First_Case
+Y_B <- Brazil$Cases
+
+Hungary <- corona %>%
+  filter(Country_Region == "Hungary", Cases >= 1, Date <= "2020-04-19")
+X_H <- Hungary$Days_after_First_Case
+Y_H <- Hungary$Cases
+
+Paraguay <- corona %>%
+  filter(Country_Region == "Paraguay", Cases >= 1, Date <= "2020-04-19")
+X_P <- Paraguay$Days_after_First_Case
+Y_P <- Paraguay$Cases
+
+
+
+## Scatter Plot of Daily Cases & Cumalative Cases
+# Brazil
+Daily_Brazil <- ggplot() +
+  geom_point(aes(X_B, Brazil$Difference), shape = 1) +
+  labs(title = "COVID-19 Daily cases in Brazil",
+       x = "From 02/26 To 04/19 in 2020", y = "Daily Cases")
+
+Cumulative_Brazil <- ggplot() +
+  geom_point(aes(X_B, Y_B), shape = 1) +
+  labs(title = "COVID-19 Cumulative cases in Brazil",
+       x = "From 02/26 To 04/19 in 2020", y = "Cumulative Cases")
+
+grid.arrange(Daily_Brazil, Cumulative_Brazil, nrow=1, ncol=2)
+
+
+# Hungary
+Daily_Hungary <- ggplot() +
+  geom_point(aes(X_H, Hungary$Difference), shape = 1) +
+  labs(title = "COVID-19 Daily cases in Hungary",
+       x = "From 03/04 To 04/19 in 2020", y = "Daily Cases")
+Cumulative_Hungary <- ggplot() +
+  geom_point(aes(X_H, Y_H), shape = 1) +
+  labs(title = "COVID-19 Cumulative cases in Hungary",
+       x = "From 03/04 To 04/19 in 2020", y = "Cumulative Cases")
+
+grid.arrange(Daily_Hungary, Cumulative_Hungary, nrow=1, ncol=2)
+
+
+# Paraguay
+Daily_Paraguay <- ggplot() +
+  geom_point(aes(X_P, Paraguay$Difference), shape = 1) +
+  labs(title = "COVID-19 Daily cases in Paraguay",
+       x = "From 03/08 To 04/19 in 2020", y = "Daily Cases")
+Cumulative_Paraguay <- ggplot() +
+  geom_point(aes(X_P, Y_P), shape = 1) +
+  labs(title = "COVID-19 Cumulative cases in Paraguay",
+       x = "From 03/08 To 04/19 in 2020", y = "Cumulative Cases")
+
+grid.arrange(Daily_Paraguay, Cumulative_Paraguay, nrow=1, ncol=2)
+
+
+
+```
+
+
