@@ -1,0 +1,97 @@
+---
+title: "Poisson Regression"
+author : "고영현 (2014-19984)"
+date: '2020-07-09'
+output :
+  html_document:
+    theme: journal
+---
+
+<br>
+<br>
+
+
+```{r setup, echo = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(knitr)
+library(nls2)
+library(segmented)
+library(gridExtra)
+library(lubridate)
+library(GGally)
+
+setwd("C:\\Users\\1234\\Desktop\\고영현\\수업\\인턴십\\변수 데이터")
+
+#COVID_19 <- read.csv("COVID-19 Cases.csv")
+
+#corona <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM")
+
+write.csv(corona, "corona_0708.csv")
+
+```
+
+
+<br>
+<br>
+
+### 1. Poisson vs Segmented Poisson Regression
+
+<br>
+
+#### (1-1) Data Preprocessing
+
+```{r}
+
+corona <- read.csv("corona_0708.csv") %>%
+  mutate(date = make_datetime(year, month, day),
+         country = countriesAndTerritories) %>%
+  select(14, 13, 6, 7) %>%
+  arrange(country, date)
+
+
+
+#### 모든 국가들 glm 및 segmented 돌리기 ####
+nrows <- count(corona, country)
+n <- 0
+
+for (i in unique(corona$country)){
+  n <- n+1
+  
+  ## Training set ( ~ 05/31)
+  train <- corona %>%
+    filter(country == i) %>%
+    mutate(total = cumsum(cases),
+           Days_after_first_Case = 1:nrows$n[n]) %>%
+    filter(total >= 1, date < "2020-06-01")
+  
+  
+  ## Case < 0 처리 (양 옆 평균값으로)
+  for (j in which(train$cases < 0)){
+    train$cases[j] = (train$cases[j-1] + train$cases[j+1]) / 2
+  }
+  
+  
+  ## Validation set (06/01 ~ 07/08)
+  valid <- corona %>%
+    filter(country == i) %>%
+    mutate(total = cumsum(cases),
+           Days_after_first_Case = 1:nrows$n[n]) %>%
+    filter(total >= 1, date >= "2020-06-01")
+  
+  print(i); print(which(train$cases < 0))
+  
+  
+  ## Poisson regression
+  fit <- glm(cases ~ Days_after_first_Case + log(Days_after_first_Case), data = train, family = poisson)
+  
+  summary_fit <- summary(fit)
+}
+
+
+
+```
+
+
+<br>
