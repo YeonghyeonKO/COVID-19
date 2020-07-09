@@ -1,7 +1,7 @@
 ---
 title: "Poisson Regression"
 author : "고영현 (2014-19984)"
-date: '2020-07-07'
+date: '2020-07-08'
 output :
   html_document:
     theme: journal
@@ -19,9 +19,9 @@ library(knitr)
 library(nls2)
 library(segmented)
 library(gridExtra)
+library(GGally)
 
-getwd()
-setwd("C:\\Users\\1234\\Documents\\GitHub\\COVID-19\\변수 선택")
+setwd("C:\\Users\\1234\\Desktop\\고영현\\수업\\인턴십\\변수 데이터")
 
 COVID_19 <- read.csv("COVID-19 Cases.csv")
 
@@ -31,7 +31,7 @@ COVID_19 <- read.csv("COVID-19 Cases.csv")
 <br>
 <br>
 
-### 1. 브라질, 헝가리, 파라과이에 대해 glm으로 Poisson Regression
+### 1. 각 국가 glm으로 Poisson Regression
 
 <br>
 
@@ -60,76 +60,74 @@ for(i in 0:186){
   corona$Difference[134*i + 1] = corona$Cases[134*i + 1]
 }
 
+# write.csv(corona, "corona.csv")
 
 ```
 
 
 <br>
 
-#### (1-2) Brazil, Hungary, Paraguay 데이터 처리 및 시각화
+#### (1-2) 여러 국가들 자동으로 glm 돌리기
 
 ```{r}
+#corona <- read.csv("corona.csv")
+data <- read.csv("data_total.csv")
 
-## 국가별 데이터 전처리
-Brazil <- corona %>%
-  filter(Country_Region == "Brazil", Cases >= 1, Date <= "2020-04-19")
-X_B <- Brazil$Days_after_First_Case
-Y_B <- Brazil$Cases
+data_coefficient <- c()
+data_corr <- c()
+data_days <- c()
 
-Hungary <- corona %>%
-  filter(Country_Region == "Hungary", Cases >= 1, Date <= "2020-04-19")
-X_H <- Hungary$Days_after_First_Case
-Y_H <- Hungary$Cases
-
-Paraguay <- corona %>%
-  filter(Country_Region == "Paraguay", Cases >= 1, Date <= "2020-04-19")
-X_P <- Paraguay$Days_after_First_Case
-Y_P <- Paraguay$Cases
-
-
-
-## Scatter Plot of Daily Cases & Cumalative Cases
-# Brazil
-Daily_Brazil <- ggplot() +
-  geom_point(aes(X_B, Brazil$Difference), shape = 1) +
-  labs(title = "COVID-19 Daily cases in Brazil",
-       x = "From 02/26 To 04/19 in 2020", y = "Daily Cases")
-
-Cumulative_Brazil <- ggplot() +
-  geom_point(aes(X_B, Y_B), shape = 1) +
-  labs(title = "COVID-19 Cumulative cases in Brazil",
-       x = "From 02/26 To 04/19 in 2020", y = "Cumulative Cases")
-
-grid.arrange(Daily_Brazil, Cumulative_Brazil, nrow=1, ncol=2)
+for (i in data$country){
+  # Data Preprocessing
+  assign(i, corona %>%
+           filter(Country_Region == i, Cases >= 1, Date <= "2020-04-19") %>%
+           mutate(Days_after_First_Case = Days_after_First_Case - Days_after_First_Case[1] + 1))
+  assign(paste0("X_", i), get(i)$Days_after_First_Case)
+  assign(paste0("Y_", i), get(i)$Difference)
+  
+  
+  # Model fitting (GLM)
+  assign(paste0("fit_", i), glm(get(paste0("Y_", i)) ~ get(paste0("X_", i)) + log(get(paste0("X_", i))), family = poisson))
+  summary(get(paste0("fit_", i)))
+  
+  # Saving coef, p-value
+  data_coefficient <- cbind(data_coefficient, get(paste0("fit_", i))$coefficient)
+  data_days <- cbind(data_days, max(get(i)$Days_after_First_Case))
+}
 
 
-# Hungary
-Daily_Hungary <- ggplot() +
-  geom_point(aes(X_H, Hungary$Difference), shape = 1) +
-  labs(title = "COVID-19 Daily cases in Hungary",
-       x = "From 03/04 To 04/19 in 2020", y = "Daily Cases")
-Cumulative_Hungary <- ggplot() +
-  geom_point(aes(X_H, Y_H), shape = 1) +
-  labs(title = "COVID-19 Cumulative cases in Hungary",
-       x = "From 03/04 To 04/19 in 2020", y = "Cumulative Cases")
-
-grid.arrange(Daily_Hungary, Cumulative_Hungary, nrow=1, ncol=2)
+# correlation 비교하기
+data_corr <- rbind(data_coefficient, data$Max.Cases, data_days)
 
 
-# Paraguay
-Daily_Paraguay <- ggplot() +
-  geom_point(aes(X_P, Paraguay$Difference), shape = 1) +
-  labs(title = "COVID-19 Daily cases in Paraguay",
-       x = "From 03/08 To 04/19 in 2020", y = "Daily Cases")
-Cumulative_Paraguay <- ggplot() +
-  geom_point(aes(X_P, Y_P), shape = 1) +
-  labs(title = "COVID-19 Cumulative cases in Paraguay",
-       x = "From 03/08 To 04/19 in 2020", y = "Cumulative Cases")
 
-grid.arrange(Daily_Paraguay, Cumulative_Paraguay, nrow=1, ncol=2)
+colnames(data_corr) = data$country
+rownames(data_corr) = c("Intercept", "Days", "log(Days)", "Max_Cases", "Days_after_First_Case")
 
+ggpairs(data.frame(t(data_corr)))
 
+write.csv(data_corr, "data_corr.csv")
 
 ```
 
+<br>
+
+#### (1-3) Poisson regression plot 그리기
+
+```{r}
+# Daily Cases Plot
+for (i in data$country){
+  A <- ggplot() +
+    geom_point(aes(get(paste0("X_", i)), get(paste0("Y_", i))), shape = 1) +
+    geom_line(aes(get(paste0("X_", i)), fitted(get(paste0("fit_", i)))), col = 2) +
+    labs(title = paste0("COVID-19 Daily cases in ", i),
+       x = paste0("From ", substr(str_replace_all(get(i)$Date[1], "-", "/"), 6,10), " To 04/19 in 2020"), y = "Daily Cases")
+  print(A)
+}
+
+```
+
+
+
+<br>
 

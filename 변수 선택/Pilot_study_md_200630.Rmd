@@ -18,7 +18,7 @@ library(tidyverse)
 library(readxl)
 library(GGally)
 
-setwd("C:\\Users\\1234\\Documents\\GitHub\\COVID-19")
+setwd("C:\\Users\\1234\\Desktop\\고영현\\수업\\인턴십\\변수 데이터")
 ```
 
 
@@ -93,6 +93,9 @@ pop_density <- read.csv("후보변수\\인구밀도.csv", header = TRUE) %>%
 names(pop_density) <- c("Country", "pop_density")
   # density는 NA가 아닌 가장 최신 데이터
 
+# write.csv(pop_density, "pop_density2.csv")
+#pop_density2 <- read.csv("abcd.csv", header = TRUE)
+
 ```
 
 <br>
@@ -126,6 +129,9 @@ data <- left_join(parameter, child_vaccination, by = "Country") %>%
   left_join(moving_rate, by = "Country")
 
 write.csv(data, "data_고영현.csv")
+
+#a <- left_join(parameter, pop_density2, by = "Country")
+#write.csv(a, "pop_density2.csv")
 
 ```
 
