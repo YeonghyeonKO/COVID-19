@@ -1,7 +1,7 @@
 ---
 title: "Poisson Regression"
 author : "고영현 (2014-19984)"
-date: '2020-07-09'
+date: '2020-07-11'
 output :
   html_document:
     theme: journal
@@ -11,7 +11,7 @@ output :
 <br>
 
 
-```{r setup, echo = FALSE}
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
@@ -28,7 +28,7 @@ setwd("C:\\Users\\1234\\Desktop\\고영현\\수업\\인턴십\\변수 데이터"
 
 #corona <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM")
 
-write.csv(corona, "corona_0708.csv")
+#write.csv(corona, "corona_ecdc.csv")
 
 ```
 
@@ -43,53 +43,126 @@ write.csv(corona, "corona_0708.csv")
 #### (1-1) Data Preprocessing
 
 ```{r}
-
-corona <- read.csv("corona_0708.csv") %>%
+corona <- read.csv("corona_ecdc.csv") %>%
   mutate(date = make_datetime(year, month, day),
          country = countriesAndTerritories) %>%
-  select(14, 13, 6, 7) %>%
+  filter(date < "2020-07-11") %>%
+  select(country, date, cases, deaths) %>%
   arrange(country, date)
 
+num <- corona %>%
+    group_by(country) %>%
+    mutate(total = cumsum(cases)) %>%
+    filter(total > 0) %>%
+    summarise(count = n())
+
+## 국가명 통일
+levels(corona$country)[which(num$country == "Dominican_Republic")] = "Dominican Republic"
+levels(corona$country)[which(num$country == "South_Korea")] = "Korea, South"
+levels(corona$country)[which(num$country == "Saudi_Arabia")] = "Saudi Arabia"
+levels(corona$country)[which(num$country == "United_Kingdom")] = "United Kingdom"
+levels(corona$country)[which(num$country == "United_States_of_America")] = "US"
 
 
-#### 모든 국가들 glm 및 segmented 돌리기 ####
-nrows <- count(corona, country)
+## 40개 국가 간추리기
+corona_40 <- corona %>%
+  right_join(read.csv("data_total.csv"), by = "country") %>%
+  select(1:4) %>%
+  arrange(country)
+
+num_40 <- corona_40 %>%
+    group_by(country) %>%
+    mutate(total = cumsum(cases)) %>%
+    filter(total > 0) %>%
+    summarise(count = n())
+
+```
+
+<br>
+
+
+#### (1-2) Poisson & Segmented Poisson Regression Plot
+
+```{r, error=FALSE}
+
+#### 40개 국가 glm 및 segmented 돌리기 ####
 n <- 0
 
-for (i in unique(corona$country)){
+set.seed(123)
+
+
+for (i in unique(corona_40$country)){
   n <- n+1
-  
-  ## Training set ( ~ 05/31)
-  train <- corona %>%
+    
+  ### Training set ( ~ 06/30)
+  train <- corona_40 %>%
     filter(country == i) %>%
-    mutate(total = cumsum(cases),
-           Days_after_first_Case = 1:nrows$n[n]) %>%
-    filter(total >= 1, date < "2020-06-01")
+    mutate(total = cumsum(cases)) %>%
+    filter(total >= 1) %>%
+    mutate(Days_after_first_Case = 1:num_40$count[n]) %>%
+    filter(date < "2020-07-01")
   
   
-  ## Case < 0 처리 (양 옆 평균값으로)
+  ## Case < 0 처리 (0으로 대체)
   for (j in which(train$cases < 0)){
-    train$cases[j] = (train$cases[j-1] + train$cases[j+1]) / 2
+    train$cases[j] = 0
+    #train$cases[j] = (train$cases[j-1] + train$cases[j+1]) / 2
   }
   
   
-  ## Validation set (06/01 ~ 07/08)
-  valid <- corona %>%
+  ### Validation set (07/01 ~ 07/10)
+  valid <- corona_40 %>%
     filter(country == i) %>%
-    mutate(total = cumsum(cases),
-           Days_after_first_Case = 1:nrows$n[n]) %>%
-    filter(total >= 1, date >= "2020-06-01")
-  
-  print(i); print(which(train$cases < 0))
-  
-  
-  ## Poisson regression
-  fit <- glm(cases ~ Days_after_first_Case + log(Days_after_first_Case), data = train, family = poisson)
-  
+    mutate(total = cumsum(cases)) %>%
+    filter(total >= 1) %>%
+    mutate(Days_after_first_Case = 1:num_40$count[n]) %>%
+    filter(date >= "2020-07-01")
+
+
+  ### Poisson & Segmented Poisson regression
+  fit <- glm(cases ~ log(Days_after_first_Case) + Days_after_first_Case, data = train, family = poisson)
   summary_fit <- summary(fit)
+  
+  seg_fit <- segmented(fit, npsi = 1)
+  summary_seg_fit <- summary(seg_fit)
+  
+  
+  ### 일일 확진자 plot
+  Daily <- ggplot() +
+    
+    ## Training
+    geom_point(aes(train$Days_after_first_Case, train$cases), alpha = 0.3) +
+    geom_line(aes(train$Days_after_first_Case, fitted(fit)), col = 2) +
+    geom_line(aes(train$Days_after_first_Case, fitted(seg_fit)), col = 4) +
+    
+    ## Validation
+    geom_point(aes(valid$Days_after_first_Case, valid$cases), shape = 1, alpha = 0.3) +
+    geom_line(aes(valid$Days_after_first_Case, predict(fit, data.frame(Days_after_first_Case = valid$Days_after_first_Case), type = "response")), col = 2, linetype = 3, size = 1) +
+    geom_line(aes(valid$Days_after_first_Case, predict(seg_fit, data.frame(Days_after_first_Case = valid$Days_after_first_Case), type = "response")), col = 4, linetype = 3, size = 1) +
+    
+    labs(title = paste0("Daily Cases in ", i),
+         subtitle = "Train : Until 2020/06/30",
+         x = "Days after the first case", y = "Daily Cases")
+    
+  
+  ### 누적 확진자 plot
+  Cumulative <- ggplot() + 
+    
+    ## Training
+    geom_point(aes(train$Days_after_first_Case, cumsum(train$cases)), alpha = 0.3) +
+    geom_line(aes(train$Days_after_first_Case, cumsum(fitted(fit))), col = 2) +
+    geom_line(aes(train$Days_after_first_Case, cumsum(fitted(seg_fit))), col = 4) +
+    
+    ## Validation
+    geom_point(aes(valid$Days_after_first_Case, valid$total), shape = 1, alpha = 0.3) +
+    geom_line(aes(valid$Days_after_first_Case, cumsum(predict(fit, data.frame(Days_after_first_Case = valid$Days_after_first_Case), type = "response")) + cumsum(fitted(fit))[nrow(train)]), col = 2, linetype = 3, size = 1) +
+    geom_line(aes(valid$Days_after_first_Case, cumsum(predict(seg_fit, data.frame(Days_after_first_Case = valid$Days_after_first_Case), type = "response")) + cumsum(fitted(seg_fit))[nrow(train)]), col = 4, linetype = 3, size = 1) +
+    labs(title = paste0("Cumulative Cases in ", i),
+         subtitle = "Train : Until 2020/06/30",
+         x = "Days after the first case", y = "Cumulative Cases")
+  
+  grid.arrange(Daily, Cumulative, ncol = 2)
 }
-
-
 
 ```
 
