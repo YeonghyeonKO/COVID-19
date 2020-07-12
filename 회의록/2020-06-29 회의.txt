@@ -1,0 +1,27 @@
+
+최종 목적 : 여러 코로나 관련 정책 중 효과적인 정책 탐색. (시간 효과를 고려해 정책별 영향력을 평가)
+
+-(step1) y_ij = b_0i + b_1i * x_ij + e_ij (j = 1,2, ... ,t) 
+-(step2) 여기서 hat(b_0i), hat(b_1i)에 대해 x가 아닌 다른 변수들의 효과를 보자.
+
+-(step1+2)를 한꺼번에 돌리게 되면 Linear Mixed Effect Model로 확장 가능 (GEE의 counterpart model)
+ * Linear Mixed Effect Model은 normality assumption이고 GEE는 exponential family
+ 하지만 같이 돌리면 정보의 손실이 있다는 단점. (계산은 간단할 듯)
+ * LMM이란? 
+
+- 방법 : 
+(1) 국가별 모형적합(gompertz, bertalanffy, logistic) => 회귀계수 추정(a, b, c), 국가별 parameter(a, b, c) 비교
+   -여기서 a 인구수(pop), b가 확산속도(rate), c는 shift (b가 제일 중요)
+
+(2) b를 다양한 변수(GDP, 억제 정책 등등)으로 회귀분석 => 유의미한 Time-independent 변수 추출
+   - 기존 모델의 parameter들과 위 variable 사이의 연관성 분석
+   - 억제 정책과 같이 numeric하지 않은 변수를 어떻게 처리할 것인가?  .....  binary
+   - 시간의 흐름에 따라 정책의 강도가 다름. 이를 어떻게 분석할 것인가?  ..... 시기별로 나누어 (1)과정의 피팅작업을 반복
+	* t_1, t_2, ... t_n을 나누되 네 모델이 적합되는 최소의 t_1을 찾고 그 구간을 다른 국가에 똑같이 적용해보자.
+
+- Issue : 
+(1) 어떻게 fitting segmentation을 할 것인가?   
+
+더 조사해봐야할 내용 : Linear mixed effect model, 정책 변수의 정량화(Oxford 보고서 참고) 
+
+

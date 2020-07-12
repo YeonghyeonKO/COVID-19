@@ -1,0 +1,4 @@
+1. 데이터는 
+
+음수값 처리 필요 : 
+benin, Japan conveyance, Ecuador(3), Lithuania, Portugal, San_Marino, Uganda, United_Kingdom
