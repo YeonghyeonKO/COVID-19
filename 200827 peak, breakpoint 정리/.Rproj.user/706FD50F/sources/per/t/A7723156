@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1598498745370.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3797979639",
+    "id" : "A7723156",
+    "lastKnownWriteTime" : 1596291299,
+    "last_content_update" : 1596291299,
+    "path" : "C:/Users/김학용/Desktop/코로나 분석/3week/Logistic, Bertalanffy, Gompertz fitting for all Country.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "43,0",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

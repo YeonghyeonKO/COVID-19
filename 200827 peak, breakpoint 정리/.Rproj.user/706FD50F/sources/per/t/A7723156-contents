@@ -1,0 +1,231 @@
+#rm(list=ls())
+library(dplyr)
+library(nls2)
+library(ggplot2)
+
+
+# Analysis Period( ~ 7/10)
+max_date <- as.integer(as.Date("2020/7/30",formate="%Y/%m/%d")-
+                         as.Date("2019-12-31",formate="%Y/%m/%d"))
+colnames(df)
+#### Data preprocessing ####
+
+# data import
+ df <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM")
+
+# generate daily new cases dataframe 
+country <- unique(df$countriesAndTerritories)
+
+df_sum<-NULL
+for(i in country){
+  df_sub<-select(as.tbl(df[df$countriesAndTerritories==i,]) ,
+                 cases,dateRep) %>%
+    mutate(Date=as.Date(as.character(dateRep),format='%d/%m/%Y')) %>%
+    group_by(Date)%>%
+    summarise(new_case=sum(cases))
+  
+  colnames(df_sub) <- c("Date",i)
+  
+  if(is.null(df_sum)){
+    df_sum <- df_sub
+  }else{
+    df_sum <- full_join(df_sum, df_sub,by='Date')
+  }
+}
+df_sum<-df_sum %>% arrange(Date)
+df_sum = as.data.frame(df_sum)
+
+for(i in 1:length(country)){
+  df_sum[ c(which(is.na(df_sum[,i+1])), which(df_sum[,i+1]<0)),i+1] <- 0
+}  
+
+# Cruise in Japan(38)
+# 이스라엘, 몬테그로 => overfitting 
+#####   Logistic   ########## 
+
+logistic_result <- NULL
+logistic_country <- c()
+logistic_country2 <- c()
+for(i in setdiff(country[-38],c(logistic_country))){
+  
+  ## cumulative cases & country more than 300
+  temp <- which(country==i)
+  
+  t = which(df_sum[,temp+1]>0)[1]
+  x = t:max_date - (t-1)
+  y <- cumsum(df_sum[t:max_date,temp+1])
+  if(max(y)<300) next
+  
+  ## grid setting for initial value
+  st = data.frame(a = c(max(y), max(y)*10), b = c(0, 15), c = c(0, 0.2))
+  fit11 = nls2(y ~ a/(1+exp(b-c*x)), start = st,
+               algorithm = "plinear-random",control = nls.control(maxiter = 3000))
+  initial1 = coef(fit11)
+  
+  ## fitting
+  fit12 = try(nls(y ~ a/(1+exp(b-c*x)), 
+                  start = list(a = initial1[1],b = initial1[2],c = initial1[3])))
+  if(is.atomic(fit12)) next
+  
+  ## store the results
+  print(i)
+  plot(x,y,type="p", main=i, ylab="Number of Cases",xlab=paste("Days Since",df_sum$Date[t]))
+  try(lines(x,(fitted(fit12)),col=2))
+  
+  logistic_country <- c(logistic_country,i)
+  if(is.null(logistic_result)){
+    logistic_result <- coef(fit12)
+  }else{
+    logistic_result <- rbind(logistic_result,coef(fit12))
+  }
+}
+rownames(logistic_result)<-c(logistic_country,logistic_country2)
+
+# Bertalanffy
+
+bertalanffy_result <- NULL
+bertalanffy_country <- c()
+bertalanffy_country2 <- c()
+for(i in setdiff(country[-38],c(bertalanffy_country))){
+  
+  ## cumulative cases & country more than 300
+  temp <- which(country==i)
+  
+  t = which(df_sum[,temp+1]>0)[1]
+  x = t:max_date - (t-1)
+  y <- cumsum(df_sum[t:max_date,temp+1])
+  if(max(y)<300) next
+  
+  ## grid setting for initial value
+  st = data.frame(a = c(max(y), max(y)*10), b = c(0,1), c = c(0,100))
+  fit21 = nls2(y ~ a * ((1 - exp((-b)*x))^c), start = st,
+               algorithm = "plinear-random",control = nls.control(maxiter = 3000))
+  # Bertalanffy
+  initial2 = coef(fit21)
+  fit22 = try(nls(y ~ a * ((1 - exp((-b)*x))^c), 
+                  start = list(a = initial2[1],b = initial2[2],c = initial2[3])))
+  if(is.atomic(fit22)) next
+  
+  ## store the results
+  print(i)
+  plot(x,y,type="p", main=i, ylab="Number of Cases",xlab=paste("Days Since",df_sum$Date[t]))
+  try(lines(x,(fitted(fit22)),col=2))
+  
+  bertalanffy_country <- c(bertalanffy_country,i)
+  if(is.null(bertalanffy_result)){
+    bertalanffy_result <- coef(fit22)
+  }else{
+    bertalanffy_result <- rbind(bertalanffy_result,coef(fit22))
+  }
+}
+rownames(bertalanffy_result)<-c(bertalanffy_country,bertalanffy_country2)
+
+
+# Gompertz 
+
+gompertz_result <- NULL
+gompertz_country <- c()
+gompertz_country2 <- c()
+for(i in setdiff(country[-38],c(gompertz_country))){
+  
+  ## cumulative cases & country more than 300
+  temp <- which(country==i)
+  
+  t = which(df_sum[,temp+1]>0)[1]
+  x = t:max_date - (t-1)
+  y <- cumsum(df_sum[t:max_date,temp+1])
+  if(max(y)<300) next
+  
+  ## grid setting for initial value
+  st = data.frame(a = c(max(y), max(y)*10), b = c(0,100), c = c(0,0.1))
+  fit31 = nls2(y ~ a * exp(-b * exp(-c * x)), start = st,
+               algorithm = "plinear-random",control = nls.control(maxiter = 3000))
+  # Bertalanffy
+  initial3 = coef(fit31)
+  fit32 = try(nls(y ~ a * exp(-b * exp(-c * x)), 
+                  start = list(a = initial3[1],b = initial3[2],c = initial3[3])))
+  if(is.atomic(fit32)) next
+  
+  ## store the results
+  print(i)
+  plot(x,y,type="p", main=i, ylab="Number of Cases",xlab=paste("Days Since",df_sum$Date[t]))
+  try(lines(x,(fitted(fit32)),col=2))
+  
+  gompertz_country <- c(gompertz_country,i)
+  if(is.null(gompertz_result)){
+    gompertz_result <- coef(fit32)
+  }else{
+    gompertz_result <- rbind(gompertz_result,coef(fit32))
+  }
+}
+rownames(gompertz_result)<-c(gompertz_country,gompertz_country2)
+
+
+# data file
+df1<-cbind(country=rownames(logistic_result),logistic_result)
+df2<-cbind(country=rownames(bertalanffy_result),bertalanffy_result)
+df3<-cbind(country=rownames(gompertz_result),gompertz_result)
+
+df1<-data.frame(df1)
+df2<-data.frame(df2)
+df3<-data.frame(df3)
+
+df_summary <- full_join(country,df1,by="country")
+df_summary <- full_join(df_summary,df2,by="country") 
+df_summary <- full_join(df_summary,df3,by="country") 
+length(df1[,1]);length(df2[,1]);length(df3[,1])
+write.csv(df_summary,"C:/Users/김학용/Desktop/코로나 분석/3week/~7-10,result.csv")
+
+
+
+
+
+
+
+##################
+par(mfrow=c(2,1))
+
+for(i in country){
+  
+  ## cumulative cases & country more than 300
+  temp <- which(country==i)
+  
+  t = which(df_sum[,temp+1]>0)[1]
+  x = t:max_date - (t-1)
+  y <- cumsum(df_sum[t:max_date,temp+1])
+
+  ## grid setting for initial value
+  st = data.frame(a = c(max(y), max(y)*10), b = c(0, 15), c = c(0, 0.2))
+  fit11 = nls2(y ~ a/(1+exp(b-c*x)), start = st,
+               algorithm = "plinear-random",control = nls.control(maxiter = 3000))
+  initial1 = coef(fit11)
+  
+  ## fitting
+  fit12 = try(nls(y ~ a/(1+exp(b-c*x)), 
+                  start = list(a = initial1[1],b = initial1[2],c = initial1[3])))
+  if(is.atomic(fit12)) next
+  
+  ## store the results
+  print(i)
+  plot(diff(y))
+  plot(x,y,type="p", main=i, ylab="Number of Cases",xlab=paste("Days Since",df_sum$Date[t]))
+  try(lines(x,(fitted(fit12)),col=2))
+}
+
+#### plotting ####
+
+for(i in country){
+  
+  ## cumulative cases & country more than 300
+  temp <- which(country==i)
+  
+  t = which(df_sum[,temp+1]>0)[1]
+  x = t:max_date - (t-1)
+  y <- cumsum(df_sum[t:max_date,temp+1])
+  
+  ## store the results
+  print(i)
+  plot(diff(y))
+  plot(x,y,type="p", main=i, ylab="Number of Cases",xlab=paste("Days Since",df_sum$Date[t]))
+}
+

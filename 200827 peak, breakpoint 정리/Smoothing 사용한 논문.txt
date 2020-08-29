@@ -1,0 +1,5 @@
+moving average 사용한 논문
+Moving-average based index to evaluate the epidemic trend of COVID-19 outbreak
+
+exponential smoothing 사용한 논문
+Forecasting the novel coronavirus COVID-19
