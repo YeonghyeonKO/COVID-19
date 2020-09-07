@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1599147940320.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3735502871",
+    "id" : "C2F4EA1F",
+    "lastKnownWriteTime" : 1599139121,
+    "last_content_update" : 1599139121,
+    "path" : "C:/Users/김학용/Desktop/코로나 연구 인턴/10week/Categorization, state analysis using derivative/current_state analysis.R",
+    "project_path" : "current_state analysis.R",
+    "properties" : {
+        "cursorPosition" : "15,22",
+        "scrollLine" : "0",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

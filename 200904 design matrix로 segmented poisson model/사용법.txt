@@ -1,0 +1,21 @@
+사용방법.txt
+
+step1) function에서 먼저 세 함수를 저장함. 
+step2) _main_에서 실행
+step3) 이미지 결과를 저장할 시 image 폴더를 따로 생성.
+
+-------------
+function : 
+1) set_date : 분석기간의 마지막 날짜 설정(default는 today)
+2) preprocessing_data : ecdc 코로나 데이터 전처리 함수
+3) derivative_analysis : peak, break_point 계산
+options : (Country,criteria=0.1, 
+                        start_date=1,end_date=max_date, 
+                        exclusion_criteria=50,gkf_bandwidth=14,
+                        save_image = FALSE,
+                        save_excel= FALSE)
+
+Country - country(모든 나라), main_country(주요나라) 둘중 하나에서 선택
+결과를 파일로 출력시 save_image, save_excel를 TRUE로 설정.
+4) segPoisson : 디자인 매트릭스를 사용하여 segmented poission regression
+5) cumulative analysis : segmented logistic regression

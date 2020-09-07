@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1599147941182.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2366721050",
+    "id" : "148E1EDD",
+    "lastKnownWriteTime" : 1599225544,
+    "last_content_update" : 1599225544529,
+    "path" : "C:/Users/김학용/Desktop/코로나 연구 인턴/10week/Categorization, state analysis using derivative/function.R",
+    "project_path" : "function.R",
+    "properties" : {
+        "cursorPosition" : "281,1",
+        "scrollLine" : "265"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
