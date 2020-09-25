@@ -38,6 +38,7 @@ preprocessing_data <- function(){
   return(df_sum)
 }
 
+
 #### derivative_analysis : categorizing/properties analysis using derivative ####
 derivative_analysis <- function(Country,criteria=0.1, 
                         start_date="2020-01-01",end_date=max_date, 
