@@ -1,7 +1,9 @@
 #rm(list=ls())
+library(tidyverse)
 library(dplyr)
 library(ggplot2)
 library(nls2)
+library(zoo)
 
 # Analysis Period( ~ 9/22)
 max_date <- set_date("2020/9/22") 
@@ -23,70 +25,57 @@ df_result = derivative_analysis(Country = country,gkf_bandwidth = 14,first_break
 derivative_analysis(Country = "Germany",gkf_bandwidth = 14,first_break = 50,save_image = FALSE,save_excel = FALSE)
 
 
-#### segmented logistic ####
-# - 1st breakpoint is not real breakpoint but starting point of logistic regression            #
-# - from 2nd point, real breakpoint is counted                                                 #
-# - ex) breakpoint=c(50, 70, 120) => 50 is the first day since cumulative # is bigger than 50  # 
-# -     so the # of real breakpoint is 2(70, 120)                                              #
 
-par(mfrow=c(1,1))
-break_sum = df_result[,13:17]
-rownames(break_sum) = df_result$country
+country <- c("South_Korea", "Japan", "Italy", "Iran", "United_States_of_America",
+             "Canada", "Spain", "Russia")
 
-main_country = c("South_Korea","Japan","United_Kingdom","France",
-                 "Germany","Italy","Iran","China","United_States_of_America",
-                 "Canada","Spain","Brazil","Russia","India")
+a2_sep <- c(63366, 62543, 94862, 302481, 4712386, 15732, 641896, 155988)
+b2_sep <- c(7.31, 14.4, 13.41, 5.4, 9.11, 19.53, 12.07, 29.54)
+c2_sep <- c(0.027, 0.081, 0.065, 0.04, 0.06, 0.138, 0.062, 0.164)
+a2_seg <- c(281861, 62670, 334783, 292288, 4756758, 19728, 829985, 183613)
+b2_seg <- c(7.91, 14.34, 9.1, 5.71, 8.96, 13.27, 10.51, 20.64)
+c2_seg <- c(0.023, 0.08, 0.036, 0.043, 0.059, 0.095, 0.051, 0.116)
 
-main_country = c("United_Kingdom","France","United_States_of_America")
 
-for(i in main_country){
-  temp = which(rownames(break_sum)==i)
-  break_point = break_sum$break1[temp]
-  for(j in 2:5){
-    if(!is.na(break_sum[temp,j])){
-      break_point = c(break_point,break_sum[temp,j])
-    }
-  }
-  segLogistic(Country=i,break_point = break_point,save_image = TRUE,prediction_plot = TRUE,
-              max_iter = 3000)
+coef_2 <- as.data.frame(
+  cbind(country, a2_seg, b2_seg, c2_seg,
+        a2_sep, b2_sep, c2_sep)) %>%
+    
+  # alphabetically ordered
+  arrange(country) %>%
+  
+  bind_cols(df_result[which(df_result$country %in% country),][13]) %>%
+
+  # start
+  bind_cols(df_result[which(df_result$country %in% country),][14]) %>%
+
+  # end
+  bind_cols(as.vector(na.fill(
+    df_result[which(df_result$country %in% country),][15], 267)))
+
+colnames(coef_2)[8:10] <- c("initial", "start", "end")
+coef_2[, c(2:7)] <- sapply(coef_2[, c(2:7)], as.numeric)
+
+
+
+## 아래 두 문장의 문제를 해결하여 ggplot() 2,3번째 줄 "df_sum$Canada"만 고치면 됨.
+# noquote 해봤는데 안됨...
+get(paste0("df_sum$", "Canada"))
+df_sum$Canada
+
+for (i in 1:8){
+  # country <- noquote(coef_2[i, 1])
+  x <- coef_2[i,]$start:coef_2[i,]$end
+  y <- coef_2[i,]$a2_seg / (1 + exp(coef_2[i,]$b2_seg - coef_2[i,]$c2_seg * x))
+  
+  ggplot() +
+    geom_point(aes(1:length(df_sum$Canada), cumsum(df_sum$Canada))) +
+    geom_point(aes(x, cumsum(df_sum$Canada)[x]), col = 2) +
+    geom_vline(aes(xintercept = c(coef_2[i,]$start, coef_2[i,]$end)), col = 2, linetype = 4) +
+    theme_bw() + 
+    labs(title = paste0("2nd Segmented Logistic coefficient in ", coef_2[i, 1]),
+         x = "Days", y = "Cumulative Confirmed Cases")
 }
 
 
-
-#### segmented logistic - daily cases ####
-for(i in main_country){
-  temp = which(rownames(break_sum)==i)
-  break_point = break_sum$break1[temp]
-  for(j in 2:5){
-    if(!is.na(break_sum[temp,j])){
-      break_point = c(break_point,break_sum[temp,j])
-    }
-  }
-  segLogistic_daily(Country=i,break_point = break_point,
-                    save_image = TRUE,prediction_plot = TRUE,
-                    max_iter = 1000)
-}
-
-
-#### separately fit logistic models #### 
-for(i in main_country){
-  temp = which(rownames(break_sum)==i)
-  break_point = break_sum$break1[temp]
-  for(j in 2:5){
-    if(!is.na(break_sum[temp,j])){
-      break_point = c(break_point,break_sum[temp,j])
-    }
-  }
-  segLogistic_separate(Country=i,break_point = break_point,save_image = TRUE,prediction_plot = TRUE,
-              max_iter = 1000)
-}
-
-
-
-#### country classification by # of waves ####
-# number of waves is counted by # of breakpoint.
-sum(table(df_result$break_number))
-table(df_result$break_number)
-
-
-
+eq <- a / (1 + exp(b - c*x))
