@@ -17,6 +17,15 @@ country <- country[-which(country=="Cases_on_an_international_conveyance_Japan")
 # preprocess data
 df_sum = preprocessing_data()
 
+
+# Simple Moving average (window size = 7)
+for(i in country){
+  df_sum[i] <- pracma::movavg(df_sum[i], 7, type = "s")  
+}
+
+i = "Afghanistan"
+
+
 # Peak Detectiong Analysis
 df_result = derivative_analysis(Country = country, gkf_bandwidth = 14, first_break = 50, save_image = FALSE, save_excel = FALSE)
 

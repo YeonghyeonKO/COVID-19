@@ -34,9 +34,17 @@ preprocessing_data <- function(){
   # negative, NA value imputation
   for(i in 1:length(country)){
     df_sum[ c(which(is.na(df_sum[,i+1])), which(df_sum[,i+1]<0)),i+1] <- 0
-  }  
+  }
+  
+  # Simple Moving average (window size = 7)
+  for(i in country){
+    df_sum[i] <- pracma::movavg(df_sum[i], 7, type = "s"))  
+  }
+    
   return(df_sum)
 }
+
+
 
 
 #### derivative_analysis : categorizing/properties analysis using derivative ####
