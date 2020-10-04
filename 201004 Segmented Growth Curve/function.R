@@ -36,11 +36,6 @@ preprocessing_data <- function(){
     df_sum[ c(which(is.na(df_sum[,i+1])), which(df_sum[,i+1]<0)),i+1] <- 0
   }
   
-  # Simple Moving average (window size = 7)
-  for(i in country){
-    df_sum[i] <- pracma::movavg(df_sum[i], 7, type = "s"))  
-  }
-    
   return(df_sum)
 }
 
@@ -282,7 +277,7 @@ segLogistic = function(Country,start_date=1,
                         save_image = FALSE,
                        prediction_plot = FALSE,
                        daily_plot = FALSE){
-  if(save_image){png(filename=paste0("cumulative/",i,"_Logistic.png"))}
+  if(save_image){png(filename=paste0("cumulative/Logistic/",i,"_Logistic.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] #min(which(df_sum[,temp]>0))
@@ -321,9 +316,11 @@ segLogistic = function(Country,start_date=1,
   
   if(prediction_plot){
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases",main=paste0(Country, " / Logistic"),xlim=c(0,n+30),ylim=c(0,2*max(y))) 
   }else{
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases",main=paste0(Country, " / Logistic")) 
   }
   
@@ -444,7 +441,7 @@ segBertalanffy = function(Country,start_date=1,
                        save_image = FALSE,
                        prediction_plot = FALSE,
                        daily_plot = FALSE){
-  if(save_image){png(filename=paste0("cumulative/",i,"_Bertalanffy.png"))}
+  if(save_image){png(filename=paste0("cumulative/Bertalanffy/",i,"_Bertalanffy.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] #min(which(df_sum[,temp]>0))
@@ -483,9 +480,11 @@ segBertalanffy = function(Country,start_date=1,
   
   if(prediction_plot){
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Bertalanffy"), xlim=c(0,n+30),ylim=c(0,2*max(y))) 
   }else{
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Bertalanffy")) 
   }
   
@@ -605,7 +604,7 @@ segGompertz = function(Country,start_date=1,
                           save_image = FALSE,
                           prediction_plot = FALSE,
                           daily_plot = FALSE){
-  if(save_image){png(filename=paste0("cumulative/",i,"_Gompertz.png"))}
+  if(save_image){png(filename=paste0("cumulative/Gompertz/",i,"_Gompertz.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] #min(which(df_sum[,temp]>0))
@@ -644,9 +643,11 @@ segGompertz = function(Country,start_date=1,
   
   if(prediction_plot){
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Gompertz"), xlim=c(0,n+30),ylim=c(0,2*max(y))) 
   }else{
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Gompertz")) 
   }
   
@@ -766,7 +767,7 @@ segLogistic_daily = function(Country,start_date=1,
                        max_iter = 500,
                        save_image = FALSE,
                        prediction_plot = FALSE){
-  if(save_image){png(filename=paste0("daily/",i,"_Logistic.png"))}
+  if(save_image){png(filename=paste0("daily/Logistic/",i,"_Logistic.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] 
@@ -807,9 +808,11 @@ segLogistic_daily = function(Country,start_date=1,
   
   if(prediction_plot){
     plot(x,y_day,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Logistic"), xlim=c(0,n+30),ylim=c(0,2*max(y_day))) 
   }else{
     plot(x,y_day,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Logistic")) 
   }
   
@@ -929,7 +932,7 @@ segBertalanffy_daily = function(Country,start_date=1,
                              max_iter = 500,
                              save_image = FALSE,
                              prediction_plot = FALSE){
-  if(save_image){png(filename=paste0("daily/",i,"_Bertalanffy.png"))}
+  if(save_image){png(filename=paste0("daily/Bertalanffy/",i,"_Bertalanffy.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] 
@@ -970,9 +973,11 @@ segBertalanffy_daily = function(Country,start_date=1,
   
   if(prediction_plot){
     plot(x,y_day,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Bertalanffy"), xlim=c(0,n+30),ylim=c(0,2*max(y_day))) 
   }else{
     plot(x,y_day,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Bertalanffy")) 
   }
   
@@ -1092,7 +1097,7 @@ segGompertz_daily = function(Country,start_date=1,
                                 max_iter = 500,
                                 save_image = FALSE,
                                 prediction_plot = FALSE){
-  if(save_image){png(filename=paste0("daily/",i,"_Gompertz.png"))}
+  if(save_image){png(filename=paste0("daily/Gompertz/",i,"_Gompertz.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] 
@@ -1133,9 +1138,11 @@ segGompertz_daily = function(Country,start_date=1,
   
   if(prediction_plot){
     plot(x,y_day,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Gompertz"), xlim=c(0,n+30),ylim=c(0,2*max(y_day))) 
   }else{
     plot(x,y_day,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Gompertz")) 
   }
   
@@ -1257,7 +1264,7 @@ segLogistic_separate = function(Country,start_date=1,
                        save_image = FALSE,
                        prediction_plot = FALSE,
                        daily_plot = FALSE){
-  if(save_image){png(filename=paste0("separate/",i,"_Logistic.png"))}
+  if(save_image){png(filename=paste0("separate/Logistic/",i,"_Logistic.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] #min(which(df_sum[,temp]>0))
@@ -1296,9 +1303,11 @@ segLogistic_separate = function(Country,start_date=1,
   
   if(prediction_plot){
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Logistic"), xlim=c(0,n+30),ylim=c(0,2*max(y))) 
   }else{
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Logistic")) 
   }
   
@@ -1417,7 +1426,7 @@ segBertalanffy_separate = function(Country,start_date=1,
                                 save_image = FALSE,
                                 prediction_plot = FALSE,
                                 daily_plot = FALSE){
-  if(save_image){png(filename=paste0("separate/",i,"_Bertalanffy.png"))}
+  if(save_image){png(filename=paste0("separate/Bertalanffy/",i,"_Bertalanffy.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] #min(which(df_sum[,temp]>0))
@@ -1456,9 +1465,11 @@ segBertalanffy_separate = function(Country,start_date=1,
   
   if(prediction_plot){
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Bertalanffy"), xlim=c(0,n+30),ylim=c(0,2*max(y))) 
   }else{
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Bertalanffy")) 
   }
   
@@ -1577,7 +1588,7 @@ segGompertz_separate = function(Country,start_date=1,
                                    save_image = FALSE,
                                    prediction_plot = FALSE,
                                    daily_plot = FALSE){
-  if(save_image){png(filename=paste0("separate/",i,"_Gompertz.png"))}
+  if(save_image){png(filename=paste0("separate/Gompertz/",i,"_Gompertz.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] #min(which(df_sum[,temp]>0))
@@ -1616,9 +1627,11 @@ segGompertz_separate = function(Country,start_date=1,
   
   if(prediction_plot){
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Gompertz"), xlim=c(0,n+30),ylim=c(0,2*max(y))) 
   }else{
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
+         sub="Simple Moving Avarage (window size = 7)",
          ylab="Daily cases", main=paste0(Country, " / Gompertz")) 
   }
   

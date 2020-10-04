@@ -20,10 +20,9 @@ df_sum = preprocessing_data()
 
 # Simple Moving average (window size = 7)
 for(i in country){
-  df_sum[i] <- pracma::movavg(df_sum[i], 7, type = "s")  
+  df_sum[i][,1] <- pracma::movavg(df_sum[i][,1], 7, type = "s")  
 }
 
-i = "Afghanistan"
 
 
 # Peak Detectiong Analysis
