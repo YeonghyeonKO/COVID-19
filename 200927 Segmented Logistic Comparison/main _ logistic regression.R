@@ -141,4 +141,3 @@ ggplot() +
 
 
 eq <- a / (1 + exp(b - c*x))
-

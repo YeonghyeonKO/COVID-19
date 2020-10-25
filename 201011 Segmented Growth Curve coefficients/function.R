@@ -251,8 +251,6 @@ segPoisson <- function(Country,break_point=c(),
   }
   
   X_design = data.frame(X_design)
- 
-  X_design = data.frame(X_design)
   fit <- try(glm(y ~  . , family = poisson(),data=X_design))
   
   fitted_y = c(rep(0,b[1]-1),fitted(fit)[b[1]:n])
