@@ -19,6 +19,7 @@ coef <- filter(read.csv("coef_result.csv"), !X %in% exclude_countries)[, -1]
 log_coef <- log(coef)
 log_coef_st <- scale(log(coef))
 
+chart.Correlation(coef[, c(1:6)], histogram = TRUE, pch=19)
 chart.Correlation(log_coef[, c(1:6)], histogram = TRUE, pch=19)
 
 
@@ -60,88 +61,89 @@ chart.Correlation(log_coef[, c(1,4,2,5,3,6)])
 ## a1_Logi vs a2_Logi
 set.seed(1)
 chart.Correlation(log_coef[, c(1,4)], histogram = TRUE, pch=19)
-perm_data <- log_coef[, c(1, 4)] %>% filter(!is.na(a2_Logi), !is.nan(a1_Logi))
-var.test(perm_data[,1], perm_data[,2])
-boxplot(perm_data[,1:2], main="Boxplots for Logistic coef. a between two segments")
-t_stat <- t.test(perm_data[,1], perm_data[,2], paired=TRUE)$statistic
+a_logi <- coef[, c(1, 4)] %>% filter(!is.na(a2_Logi), !is.nan(a1_Logi))
+a_logi <- log_coef[, c(1, 4)] %>% filter(!is.na(a2_Logi), !is.nan(a1_Logi))
+attach(a_logi)
+boxplot(a_logi, main="Boxplots for Logistic coef. a between two segments")
+paired_t_stat <- t.test(a1_Logi, a2_Logi, paired=TRUE)$statistic
 # Paired t-test
-paired_t_perm <- paired.perm.test(perm_data[,1:2], n.perm=1000)
+paired_t_perm <- paired.perm.test(a_logi, n.perm=1000)
 hist(paired_t_perm, xlim=c(-20,20),
      main="Paired Permutation Test for a1_Logi & a2_Logi")
-abline(v=abs(t_stat),lty=2,col=2)
-pvalue=mean(abs(t_perm)>=abs(t_stat)); pvalue
+abline(v=abs(paired_t_stat),lty=2,col=2)
+pvalue=mean(abs(paired_t_perm)>=abs(paired_t_stat)); pvalue
 
 
 ## b1_Logi vs b2_Logi
 set.seed(1)
 chart.Correlation(log_coef[, c(2,5)], histogram = TRUE, pch=19)
-perm_data <- log_coef[, c(2, 5)] %>% filter(!is.na(b2_Logi), !is.nan(b1_Logi))
-var.test(perm_data[,1], perm_data[,2])
-boxplot(perm_data[,1:2], main="Boxplots for Logistic coefficient b between two segments")
-t_stat <- t.test(perm_data[,1], perm_data[,2], paired=TRUE)$statistic
+b_logi <- log_coef[, c(2, 5)] %>% filter(!is.na(b2_Logi), !is.nan(b1_Logi))
+attach(b_logi)
+boxplot(b_logi, main="Boxplots for Logistic coef. b between two segments")
+paired_t_stat <- t.test(b1_Logi, b2_Logi, paired=TRUE)$statistic
 # Paired t-test
-paired_t_perm <- paired.perm.test(perm_data[,1:2], n.perm=1000)
+paired_t_perm <- paired.perm.test(b_logi, n.perm=1000)
 hist(paired_t_perm, xlim=c(-20,20),
      main="Paired Permutation Test for b1_Logi & b2_Logi")
-abline(v=abs(t_stat),lty=2,col=2)
-pvalue=mean(abs(t_perm)>=abs(t_stat)); pvalue
+abline(v=abs(paired_t_stat),lty=2,col=2)
+pvalue=mean(abs(paired_t_perm)>=abs(paired_t_stat)); pvalue
 
 
 ## c1_Logi vs c2_Logi
 set.seed(1)
 chart.Correlation(log_coef[, c(3,6)], histogram = TRUE, pch=19)
-perm_data <- log_coef[, c(3, 6)] %>% filter(!is.na(c2_Logi), !is.nan(c1_Logi))
-var.test(perm_data[,1], perm_data[,2])
-boxplot(perm_data[,1:2], main="Boxplots for Logistic coefficient c between two segments")
-t_stat <- t.test(perm_data[,1], perm_data[,2], paired=TRUE)$statistic
+c_logi <- log_coef[, c(3, 6)] %>% filter(!is.na(c2_Logi), !is.nan(c1_Logi))
+attach(c_logi)
+boxplot(c_logi, main="Boxplots for Logistic coef. c between two segments")
+paired_t_stat <- t.test(c1_Logi, c2_Logi, paired=TRUE)$statistic
 # Paired t-test
-paired_t_perm <- paired.perm.test(perm_data[,1:2], n.perm=1000)
+paired_t_perm <- paired.perm.test(c_logi, n.perm=1000)
 hist(paired_t_perm, xlim=c(-20,20),
      main="Paired Permutation Test for c1_Logi & c2_Logi")
-abline(v=abs(t_stat), lty=2, lwd=2, col=2)
-pvalue=mean(abs(t_perm)>=abs(t_stat)); pvalue
+abline(v=abs(paired_t_stat),lty=2,col=2)
+pvalue=mean(abs(paired_t_perm)>=abs(paired_t_stat)); pvalue
 
 
 ### a1_Gom vs a2_Gom
 set.seed(1)
 chart.Correlation(log_coef[, c(7,10)], histogram = TRUE, pch=19)
-perm_data <- log_coef[, c(7, 10)] %>% filter(!is.na(a2_Gom), !is.nan(a1_Gom))
-var.test(perm_data[,1], perm_data[,2])
-boxplot(perm_data[,1:2], main="Boxplots for Gompertz coefficient a between two segments")
-t_stat <- t.test(perm_data[,1], perm_data[,2], paired=TRUE)$statistic
+a_Gom <- log_coef[, c(7, 10)] %>% filter(!is.na(a2_Gom), !is.nan(a1_Gom))
+attach(a_Gom)
+boxplot(a_Gom, main="Boxplots for Gompertz coef. a between two segments")
+paired_t_stat <- t.test(a1_Gom, a2_Gom, paired=TRUE)$statistic
 # Paired t-test
-paired_t_perm <- paired.perm.test(perm_data[,1:2], n.perm=1000)
+paired_t_perm <- paired.perm.test(a_Gom, n.perm=1000)
 hist(paired_t_perm, xlim=c(-20,20),
      main="Paired Permutation Test for a1_Gom & a2_Gom")
-abline(v=abs(t_stat), lty=2, lwd=2, col=2)
-pvalue=mean(abs(t_perm)>=abs(t_stat)); pvalue
+abline(v=abs(paired_t_stat),lty=2,col=2, lwd=2)
+pvalue=mean(abs(paired_t_perm)>=abs(paired_t_stat)); pvalue
 
 
 ### b1_Gom vs b2_Gom
 set.seed(1)
 chart.Correlation(log_coef[, c(8,11)], histogram = TRUE, pch=19)
-perm_data <- log_coef[, c(8, 11)] %>% filter(!is.na(b2_Gom), !is.nan(b1_Gom))
-var.test(perm_data[,1], perm_data[,2])
-boxplot(perm_data[,1:2], main="Boxplots for Gompertz coefficient b between two segments")
-t_stat <- t.test(perm_data[,1], perm_data[,2], paired=TRUE)$statistic
+b_Gom <- log_coef[, c(8, 11)] %>% filter(!is.na(b2_Gom), !is.nan(b1_Gom))
+attach(b_Gom)
+boxplot(b_Gom, main="Boxplots for Gompertz coef. b between two segments")
+paired_t_stat <- t.test(b1_Gom, b2_Gom, paired=TRUE)$statistic
 # Paired t-test
-paired_t_perm <- paired.perm.test(perm_data[,1:2], n.perm=1000)
+paired_t_perm <- paired.perm.test(b_Gom, n.perm=1000)
 hist(paired_t_perm, xlim=c(-20,20),
      main="Paired Permutation Test for b1_Gom & b2_Gom")
-abline(v=abs(t_stat), lty=2, lwd=2, col=2)
-pvalue=mean(abs(t_perm)>=abs(t_stat)); pvalue
+abline(v=abs(paired_t_stat),lty=2,col=2, lwd=2)
+pvalue=mean(abs(paired_t_perm)>=abs(paired_t_stat)); pvalue
 
 
 ### c1_Gom vs c2_Gom
 set.seed(1)
 chart.Correlation(log_coef[, c(9,12)], histogram = TRUE, pch=19)
-perm_data <- log_coef[, c(9, 12)] %>% filter(!is.na(c2_Gom), !is.nan(c1_Gom))
-var.test(perm_data[,1], perm_data[,2])
-boxplot(perm_data[,1:2], main="Boxplots for Gompertz coefficient c between two segments")
-t_stat <- t.test(perm_data[,1], perm_data[,2], paired=TRUE)$statistic
+c_Gom <- log_coef[, c(9, 12)] %>% filter(!is.na(c2_Gom), !is.nan(c1_Gom))
+attach(c_Gom)
+boxplot(c_Gom, main="Boxplots for Gompertz coef. c between two segments")
+paired_t_stat <- t.test(c1_Gom, c2_Gom, paired=TRUE)$statistic
 # Paired t-test
-paired_t_perm <- paired.perm.test(perm_data[,1:2], n.perm=1000)
+paired_t_perm <- paired.perm.test(c_Gom, n.perm=1000)
 hist(paired_t_perm, xlim=c(-20,20),
      main="Paired Permutation Test for c1_Gom & c2_Gom")
-abline(v=abs(t_stat), lty=2, lwd=2, col=2)
-pvalue=mean(abs(t_perm)>=abs(t_stat)); pvalue
+abline(v=abs(paired_t_stat),lty=2,col=2, lwd=2)
+pvalue=mean(abs(paired_t_perm)>=abs(paired_t_stat)); pvalue

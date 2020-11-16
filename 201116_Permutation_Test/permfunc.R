@@ -20,22 +20,31 @@ binary.v <- function(n){
 #     do the exact test
 paired.perm.test <- function(d, n.perm=1000, pval=FALSE){
     n <- nrow(d)
-    obs <- t.test(d)$statistic
+    obs <- t.test(d[,1], d[,2], paired=TRUE)$statistic
     
-    if(is.null(n.perm)) { # do exact test
+    if(is.null(n.perm)) { 
       ind <- binary.v(n)
-      allt <- apply(ind,2,function(x,y)
+      allt <- apply(ind, 2, function(x,y)
         t.test((2*x-1)*y)$statistic,d)
     }
-    else { # do n.perm samples
+    else { 
       allt <- 1:n.perm
       for(i in 1:n.perm) 
-        allt[i] <- t.test(d*sample(c(-1,1),n,repl=TRUE))$statistic
+        allt[i] <- t.test(d*sample(c(-1,1), n, repl=TRUE))$statistic
     }
     
     if(pval) return(mean(abs(allt) >= abs(obs)))
     allt
-  }
+}
+
+n <- nrow(a_logi); n
+obs <- t.test(a_logi[,1], a_logi[,2], paired=TRUE)$statistic; obs
+allt <- 1:1000
+for(i in 1:1000){
+  allt[i] <- t.test(a_logi*sample(c(-1,1), n, repl=TRUE))$statistic
+}
+allt
+mean(abs(allt) >= abs(obs))
 
 
 
