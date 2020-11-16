@@ -38,3 +38,8 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# PPT and Papers
+.pptx
+.zip
+/PPT/
