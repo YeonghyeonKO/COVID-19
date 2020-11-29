@@ -1,7 +1,9 @@
 # COVID-19
-(20-1) Regression Analysis Project
 
 - The Raw Data have been collected by John's Hopkins University, "https://data.world/covid-19-data-resource-hub/covid-19-case-counts/workspace"
+- This is the repository for the project in [BIBS](http://bibs.snu.ac.kr) (BioInformatics & BioStatistics, Seoul National University)
+
+<br>
 
 1) Preprocess the confirmed cases data from the day the first case had appeared to May 31th in 2020.
 
