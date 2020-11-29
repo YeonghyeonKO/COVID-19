@@ -19,8 +19,14 @@ coef <- filter(read.csv("coef_result.csv"), !X %in% exclude_countries)[, -1]
 log_coef <- log(coef)
 log_coef_st <- scale(log(coef))
 
+unique(df$countriesAndTerritories)
+
+ggpairs(log_coef[, c(4:6, 10:12)], pch=19)
 
 chart.Correlation(log_coef[, c(1:6)], histogram = TRUE, pch=19)
+chart.Correlation(log_coef[, c(7:12)], histogram = TRUE, pch=19)
+chart.Correlation(log_coef[, c(1:3, 7:9)], histogram = TRUE, pch=19)
+chart.Correlation(log_coef[, c(4:6, 10:12)], histogram = TRUE, pch=19)
 
 #### 2. Correlation between Segments / Models
 ## segment 1에서 계수별 비교
