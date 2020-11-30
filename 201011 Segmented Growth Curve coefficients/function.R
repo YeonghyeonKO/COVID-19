@@ -727,14 +727,32 @@ segGompertz_separate = function(Country,start_date=1,
       if(length(coef_result[,1])>=1){
         pred_y = predict(fit12,newdata=X_design_pred)
         lines(x_, pred_y, col=2)
+        p1 <- ggplot()+
+          geom_point(aes(x, y), alpha=0.5) +
+          labs(title=paste0(Country, " / Gompertz"), subtitle="Simple Moving Average (window size = 7)",
+               x=paste("Days since",as.Date(t,origin = "2019-12-31")), y = "Confirmed Cases") +
+          geom_vline(aes(xintercept = b[-1]), linetype="dashed") +
+          geom_line(aes(x, pred_y[1:length(x)]), col=2) +
+          theme_bw() +
+          theme(
+            plot.title=element_text(size=20, hjust=0.5, face="bold", colour="black"),
+            plot.subtitle=element_text(size=13, hjust=0.5, face="italic", color="grey"),
+            axis.text=element_text(size=14),
+            axis.title=element_text(size=16),
+            axis.text.x = element_text(hjust = 1, size = 12),
+            legend.position = "none")
       }
       if(length(coef_result[,1])>=2){
         pred_y = predict(fit22,newdata=X_design_pred)
         lines(x_, pred_y, col=3)
+        p1 <- p1 +
+          geom_line(aes(x, pred_y[1:length(x)]), col=3)
       }
       if(length(coef_result[,1])>=3){
         pred_y = predict(fit32,newdata=X_design_pred)
         lines(x_, pred_y, col=4)
+        p1 <- p1 +
+          geom_line(aes(x, pred_y[1:length(x)]), col=4)
       }
       abline(v=b[-1],lty=2)
       legend("topright",c("Real value","fit1","fit2","fit3"),pch=c(1,-1,-1,-1),lty=c(0,1,1,1),col=c(1,2,3,4))
@@ -744,6 +762,7 @@ segGompertz_separate = function(Country,start_date=1,
         expr={
           rownames(coef_result) = c(1,2,3,4,5)[1:length(coef_result[,1])]
           print(coef_result)
+          print(p1)
           return(coef_result)
         }
       )

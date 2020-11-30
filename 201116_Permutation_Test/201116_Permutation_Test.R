@@ -5,6 +5,9 @@ library(PerformanceAnalytics)
 setwd("/Users/yeonghyeon/Documents/GitHub/COVID-19/201116_Permutation_Test")
 coef <- read.csv("coef_result.csv")
 
+which(coef$b1_Logi - coef$b2_Logi>0)
+which(coef$b1_Gom - coef$b2_Gom>0)
+
 outlier_countries <- c("Andorra", "Aruba", "Benin", "French_Polynesia", 
                            "Kyrgyzstan", "Kuwait", "Mongolia", "Niger",
                            "Sao_Tome_and_Principe", "Seychelles")
@@ -22,6 +25,26 @@ log_coef_st <- scale(log(coef))
 chart.Correlation(coef[, c(1:6)], histogram = TRUE, pch=19)
 chart.Correlation(log_coef[, c(1:6)], histogram = TRUE, pch=19)
 
+chart.Correlation(log_coef[, c(1,4)], histogram = TRUE, pch=19)
+chart.Correlation(log_coef[, c(2,5)], histogram = TRUE, pch=19)
+chart.Correlation(log_coef[, c(3,6)], histogram = TRUE, pch=19)
+
+chart.Correlation(log_coef[, c(7,10)], histogram = TRUE, pch=19)
+chart.Correlation(log_coef[, c(8,11)], histogram = TRUE, pch=19)
+chart.Correlation(log_coef[, c(9,12)], histogram = TRUE, pch=19)
+
+chart.Correlation(log_coef[, c(1:3)], histogram = TRUE, pch=19)
+coef$b2_Logi - coef$b1_Logi
+
+summary(lm(a1_Logi ~ c1_Logi, data=log_coef))
+summary(lm(a2_Logi ~ c2_Logi, data=log_coef))
+summary(lm(a1_Gom ~ c1_Gom, data=log_coef))
+summary(lm(a2_Gom ~ c2_Gom, data=log_coef))
+
+chart.Correlation(log_coef[, c(7:9)], histogram = TRUE, pch=19)
+
+chart.Correlation(log_coef[, c(4:6)], histogram = TRUE, pch=19)
+chart.Correlation(log_coef[, c(10:12)], histogram = TRUE, pch=19)
 
 
 #### 2. Correlation between Segments / Models

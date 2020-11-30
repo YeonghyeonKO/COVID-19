@@ -767,7 +767,7 @@ segLogistic_daily = function(Country,start_date=1,
                        max_iter = 500,
                        save_image = FALSE,
                        prediction_plot = FALSE){
-  if(save_image){png(filename=paste0("daily/Logistic/",i,"_Logistic.png"))}
+  if(save_image){png(filename=paste0(i,"_Logistic.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] 
@@ -932,7 +932,7 @@ segBertalanffy_daily = function(Country,start_date=1,
                              max_iter = 500,
                              save_image = FALSE,
                              prediction_plot = FALSE){
-  if(save_image){png(filename=paste0("daily/Bertalanffy/",i,"_Bertalanffy.png"))}
+  if(save_image){png(filename=paste0(i,"_Bertalanffy.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] 
@@ -1097,7 +1097,7 @@ segGompertz_daily = function(Country,start_date=1,
                                 max_iter = 500,
                                 save_image = FALSE,
                                 prediction_plot = FALSE){
-  if(save_image){png(filename=paste0("daily/Gompertz/",i,"_Gompertz.png"))}
+  if(save_image){png(filename=paste0(i,"_Gompertz.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] 
@@ -1264,7 +1264,7 @@ segLogistic_separate = function(Country,start_date=1,
                        save_image = FALSE,
                        prediction_plot = FALSE,
                        daily_plot = FALSE){
-  if(save_image){png(filename=paste0("separate/Logistic/",i,"_Logistic.png"))}
+  if(save_image){png(filename=paste0(i,"_Logistic.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] #min(which(df_sum[,temp]>0))
@@ -1426,7 +1426,7 @@ segBertalanffy_separate = function(Country,start_date=1,
                                 save_image = FALSE,
                                 prediction_plot = FALSE,
                                 daily_plot = FALSE){
-  if(save_image){png(filename=paste0("separate/Bertalanffy/",i,"_Bertalanffy.png"))}
+  if(save_image){png(filename=paste0(i,"_Bertalanffy.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] #min(which(df_sum[,temp]>0))
@@ -1588,7 +1588,7 @@ segGompertz_separate = function(Country,start_date=1,
                                    save_image = FALSE,
                                    prediction_plot = FALSE,
                                    daily_plot = FALSE){
-  if(save_image){png(filename=paste0("separate/Gompertz/",i,"_Gompertz.png"))}
+  if(save_image){png(filename=paste0(i,"_Gompertz.png"))}
   
   temp = which(colnames(df_sum)==Country)
   t = break_point[1] #min(which(df_sum[,temp]>0))
@@ -1628,11 +1628,11 @@ segGompertz_separate = function(Country,start_date=1,
   if(prediction_plot){
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
          sub="Simple Moving Avarage (window size = 7)",
-         ylab="Daily cases", main=paste0(Country, " / Gompertz"), xlim=c(0,n+30),ylim=c(0,2*max(y))) 
+         ylab="Daily cases", main=paste0(Country, " / Gompertz"), xlim=c(0,n+30),ylim=c(0,2*max(y)))
   }else{
     plot(x,y,xlab=paste("Days since",as.Date(t,origin = "2019-12-31")),
          sub="Simple Moving Avarage (window size = 7)",
-         ylab="Daily cases", main=paste0(Country, " / Gompertz")) 
+         ylab="Daily cases", main=paste0(Country, " / Gompertz"))
   }
   
   cat(paste("-----  ", Country,"  -----\n"))
@@ -1715,10 +1715,28 @@ segGompertz_separate = function(Country,start_date=1,
       if(length(coef_result[,1])>=1){
         pred_y = predict(fit12,newdata=X_design_pred)
         lines(x_, pred_y, col=2)
+        
+        p1 <- ggplot()+
+          geom_point(aes(x, y), alpha=0.5) +
+          labs(title=paste0(Country, " / Gompertz"), subtitle="",
+               x=paste("Days since",as.Date(t,origin = "2019-12-31")), y = "Confirmed Cases") +
+          geom_vline(aes(xintercept = b[-1]), linetype="dashed") +
+          geom_line(aes(x, pred_y[1:length(x)]), col=2) +
+          theme_bw() +
+          theme(
+            plot.title=element_text(size=20, hjust=0.5, face="bold", colour="black"),
+            plot.subtitle=element_text(size=16, hjust=0.5, face="italic", color="maroon"),
+            axis.text=element_text(size=14),
+            axis.title=element_text(size=16),
+            axis.text.x = element_text(hjust = 1, size = 12),
+            legend.position = "none")
+        
       }
       if(length(coef_result[,1])>=2){
         pred_y = predict(fit22,newdata=X_design_pred)
         lines(x_, pred_y, col=3)
+        p2 <- p1 +
+          geom_line(aes(x, pred_y[1:length(x)]), col=3)
       }
       if(length(coef_result[,1])>=3){
         pred_y = predict(fit32,newdata=X_design_pred)
@@ -1732,6 +1750,7 @@ segGompertz_separate = function(Country,start_date=1,
         expr={
           rownames(coef_result) = c(1,2,3,4,5)[1:length(coef_result[,1])]
           print(coef_result)
+          print(p2)
           return(coef_result)
         }
       )
