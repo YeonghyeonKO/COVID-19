@@ -64,6 +64,7 @@ for(i in country){
   )
 }
 
+country = c("Austria", "United_States_of_America", "South_Korea")
 
 #### segmented logistic - daily cases ####
 for(i in country){
@@ -90,7 +91,6 @@ for(i in country){
 
 #### separately fit logistic models #### 
 for(i in country){
-  i = "South_Korea"
   tryCatch(
     expr={
       temp = which(rownames(break_sum)==i)
@@ -268,5 +268,37 @@ for(i in country){
 sum(table(df_result$break_number))
 table(df_result$break_number)
 
+pp1 <- ggplot()+
+  geom_point(aes(1:length(df_sum$Malawi), df_sum$Malawi), alpha=0.5) +
+  labs(title = "Malawi") +
+  theme_bw()
+
+pp2 <- ggplot()+
+  geom_point(aes(1:length(df_sum$Benin), df_sum$Benin), alpha=0.5) +
+  labs(title = "Benin") +
+  theme_bw()
+
+gridExtra::grid.arrange(pp1, pp2)
 
 
+setwd("/Users/yeonghyeon/Documents/GitHub/COVID-19/201116_Permutation_Test")
+coef <- read.csv("coef_result.csv")
+
+which(coef$b1_Logi - coef$b2_Logi>0)
+which(coef$b1_Gom - coef$b2_Gom>0)
+
+
+
+# Andorra (b2_Logi=401) / Kyrgyzstan (b1_Gom=5915) / Benin (b1_Gom=3454) / Kuwait (b2_Gom)
+par(mfrow=c(1,2))
+boxplot(coef[-c(4,18,81,82),]$b1_Logi, main="b1_Logi"); boxplot(coef[-c(4,18,81,82),]$b2_Logi,  main="b2_Logi")
+boxplot(coef[-c(4,18,81,82),]$b1_Gom, main="b1_Gom"); boxplot(coef[-c(4,18,81,82),]$b2_Gom,  main="b2_Gom")
+
+summary(coef[-c(4,18,81,82),]$b1_Gom)
+summary(coef[-c(4,18,81,82),]$b2_Gom)
+var(coef[-c(4,18,81,82),]$b2_Gom)
+
+sd(coef[-c(4,18,81,82),]$b1_Logi[!is.na(coef[-c(4,18,81,82),]$b1_Logi)])
+sd(coef[-c(4,18,81,82),]$b2_Logi[!is.na(coef[-c(4,18,81,82),]$b2_Gom)])
+sd(coef[-c(4,18,81,82),]$b1_Gom[!is.na(coef[-c(4,18,81,82),]$b1_Gom)])
+sd(coef[-c(4,18,81,82),]$b2_Gom[!is.na(coef[-c(4,18,81,82),]$b2_Gom)])
