@@ -37,15 +37,6 @@ paired.perm.test <- function(d, n.perm=1000, pval=FALSE){
     allt
 }
 
-n <- nrow(a_logi); n
-obs <- t.test(a_logi[,1], a_logi[,2], paired=TRUE)$statistic; obs
-allt <- 1:1000
-for(i in 1:1000){
-  allt[i] <- t.test(a_logi*sample(c(-1,1), n, repl=TRUE))$statistic
-}
-allt
-mean(abs(allt) >= abs(obs))
-
 
 
 # Function to perform permutation test
