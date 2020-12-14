@@ -4,7 +4,7 @@ library(ggplot2)
 library(nls2)
 library(gridExtra)
 
-setwd("~/Documents/GitHub/COVID-19/201214_fitting_Korea")
+setwd("~/Documents/GitHub/COVID-19/201214_newly_fitted_Logistic")
 getwd()
 
 # Analysis Period( ~ 8/31)
@@ -27,8 +27,13 @@ max_date <- set_date("2020/10/31")
 df <- read.csv("https://opendata.ecdc.europa.eu/covid19/casedistribution/csv", na.strings = "", fileEncoding = "UTF-8-BOM")
 
 # generate country, population dataframe
+
+
+
 country <- as.character(unique(df$countriesAndTerritories))
 country <- country[-which(country=="Cases_on_an_international_conveyance_Japan")]
+
+country <- c("South_Korea", "Taiwan", "France", "United_Kingdom")
 
 
 # preprocess data (until 20/08/31)
@@ -46,18 +51,25 @@ df_sum = preprocessing_data()[1:290,]
 # preprocess data (until 20/10/31)
 df_sum = preprocessing_data()[1:306,]
 
-par(mfrow=c(1,1))
+par(mfrow=c(2,2))
 ts.plot(df_sum["South_Korea"])
 ts.plot(df_sum["Taiwan"])
+ts.plot(df_sum["France"])
+ts.plot(df_sum["United_Kingdom"])
+
+df_sum$Taiwan
+
+
 # Simple Moving average (window size = 7)
 for(i in country){
   df_sum[i][,1] <- pracma::movavg(df_sum[i][,1], 7, type = "s")  
 }
 
-# Peak Detectiong Analysis
-df_result = derivative_analysis(Country = country,gkf_bandwidth = 14,first_break = 50,save_image = TRUE,save_excel = TRUE)
 
-derivative_analysis(Country = "South_Sudan",gkf_bandwidth = 14,first_break = 50,save_image = FALSE,save_excel = FALSE)
+# Peak Detectiong Analysis
+df_result = derivative_analysis(Country =  country,gkf_bandwidth = 14,first_break = 0,save_image = TRUE,save_excel = TRUE)
+
+derivative_analysis(Country = "Taiwan",gkf_bandwidth = 14,first_break = 50,save_image = FALSE,save_excel = FALSE)
 
 
 ###############################################################################

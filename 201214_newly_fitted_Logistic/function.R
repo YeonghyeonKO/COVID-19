@@ -45,7 +45,7 @@ preprocessing_data <- function(){
 #### derivative_analysis : categorizing/properties analysis using derivative ####
 derivative_analysis <- function(Country,criteria=0.1, 
                         start_date="2020-01-01",end_date=max_date, 
-                        exclusion_criteria=50,gkf_bandwidth=14,
+                        exclusion_criteria=00,gkf_bandwidth=14,
                         save_image = FALSE,
                         save_excel= FALSE,
                         first_break = 50){
@@ -68,7 +68,7 @@ derivative_analysis <- function(Country,criteria=0.1,
   
   # Categorization Algorithm
   for(i in Country){
-    
+    i = "Taiwan"
     ### Initialization
     temp <- which(colnames(df_sum)==i)
     
