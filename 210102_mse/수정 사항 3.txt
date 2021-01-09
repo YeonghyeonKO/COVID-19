@@ -1,0 +1,4 @@
+specification 
+1) c=0.4
+2) localmax_condition is excluded
+3) Date : 2020.08.31 -> 2020.11.30
