@@ -3,10 +3,10 @@ library(ggplot2)
 
 
 getwd()
-setwd("/Users/yeonghyeon/Documents/GitHub/COVID-19/210104_MSE_MSSE/Summary based Analysis 최종본/")
+setwd("/Users/yeonghyeonko/Documents/GitHub/COVID-19/210225_날짜업데이트/Summary based Analysis 최종본/")
 
-slr1 <- read.csv("result/Linear Regressioin(1st Segment).csv")
-slr2 <- read.csv("result/Linear Regressioin(2nd Segment).csv")
+slr1 <- read.csv("result/Linear Regression(1st Segment, standardized).csv")
+slr2 <- read.csv("result/Linear Regression(2nd Segment, standardized).csv")
 
 Logi_a <- cbind(slr1[,c(2,3,4)], a2_Logi=slr2[,4])
 Logi_b <- cbind(slr1[,c(2,3,5)], b2_Logi=slr2[,5])
@@ -36,18 +36,18 @@ ggplot(df_a, aes(x=coefficient, y=log(p.value),
                  group=Explanatory, color=Explanatory)) +
   geom_point(shape=df_a$segment) +
   geom_line() +
-  labs(x="coefficient", y="p-value")
+  labs(x="coefficient", y="log(p-value)")
 
 # log scaled (only coefficient)
 ggplot(df_a, aes(x=log(coefficient), y=p.value, 
                  group=Explanatory, color=Explanatory)) +
   geom_point(shape=df_a$segment) +
   geom_line() +
-  labs(x="coefficient", y="p-value")
+  labs(x="log(coefficient)", y="p-value")
 
 # log scaled (both)
 ggplot(df_a, aes(x=log(coefficient), y=log(p.value), 
                  group=Explanatory, color=Explanatory)) +
   geom_point(shape=df_a$segment) +
   geom_line() +
-  labs(x="coefficient", y="p-value")
+  labs(x="log(coefficient)", y="log(p-value)")

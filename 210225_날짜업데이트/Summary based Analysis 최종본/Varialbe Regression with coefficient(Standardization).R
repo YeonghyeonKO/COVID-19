@@ -158,8 +158,8 @@ for(Y_list in list(Y_list1,Y_list2)){
 
 
 #### Write result #### 
-write.csv(df_sum1, paste0(result_path, "Linear Regressioin(1st Segment, standardized).csv"), row.names = F)
-write.csv(df_sum2, paste0(result_path, "Linear Regressioin(2nd Segment, standardized).csv"), row.names = F)
+write.csv(df_sum1, paste0(result_path, "Linear Regression(1st Segment, standardized).csv"), row.names = F)
+write.csv(df_sum2, paste0(result_path, "Linear Regression(2nd Segment, standardized).csv"), row.names = F)
 
 
 
