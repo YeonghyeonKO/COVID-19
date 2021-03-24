@@ -20,7 +20,11 @@ country <- country[-which(country=="Cases_on_an_international_conveyance_Japan")
 df_sum = preprocessing_data()[2:(max_date+1),]
 
 # Segmentation
-df_result = segmentation(Country = country,gkf_bandwidth = 14,first_day_criteria = 50,save_image = FALSE,save_excel = FALSE)
+df_result = segmentation(Country = country,
+                         gkf_bandwidth = 14,
+                         first_day_criteria = 50,
+                         save_image = FALSE,
+                         save_excel = FALSE)
 
 
 # Simple Moving Average(window size = 7)
