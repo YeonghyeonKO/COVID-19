@@ -5,7 +5,7 @@ library(forcats)
 
 # Path
 getwd()
-path <- "/Users/yeonghyeonko/Documents/GitHub/COVID-19/210324_update_date/"
+path <- "/Users/yeonghyeonko/Documents/GitHub/COVID-19/210329_final_update/"
 data_path <- paste0(path, "data/")
 result_path <- paste0(path, "result/")
 plot_path <- paste0(path, "plot/SLR/")
@@ -161,6 +161,19 @@ for(Y_list in list(Y_list1,Y_list2,Y_list3)){
 write.csv(df_sum1, paste0(result_path, "Linear Regression(1st Segment, standardized).csv"), row.names = F)
 write.csv(df_sum2, paste0(result_path, "Linear Regression(2nd Segment, standardized).csv"), row.names = F)
 write.csv(df_sum3, paste0(result_path, "Linear Regression(3rd Segment, standardized).csv"), row.names = F)
+
+SLR_seg1 <- read.csv(paste0(result_path, "Linear Regression(1st Segment, standardized).csv"))[seq(3, 93, 3),]
+SLR_seg2 <- read.csv(paste0(result_path, "Linear Regression(2nd Segment, standardized).csv"))[seq(3, 93, 3),]
+SLR_seg3 <- read.csv(paste0(result_path, "Linear Regression(3rd Segment, standardized).csv"))[seq(3, 93, 3),]
+
+significant_SLR_seg <- cbind(SLR_seg1$Explanatory, 
+                             SLR_seg1[,4:9] < 0.05,
+                             SLR_seg2[,4:9] < 0.05,
+                             SLR_seg3[,4:9] < 0.05)
+
+significant_SLR_a <- na.omit(significant_SLR_seg[,c(1,seq(2,19,3))])
+significant_SLR_b <- na.omit(significant_SLR_seg[,c(1,seq(3,19,3))])
+significant_SLR_c <- na.omit(significant_SLR_seg[,c(1,seq(4,19,3))])
 
 
 

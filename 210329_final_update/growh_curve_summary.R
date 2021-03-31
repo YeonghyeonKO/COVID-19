@@ -280,3 +280,55 @@ sum(!is.na(coef_seg_Gom$a1_Gom)) # the number of fitted countries (123)
 # ( ~ 21/03/20) among 156 countries, 123 countries are fitted and 84 countries are remained by msse ( <= 0.4 )
 
 # Final result is 114 (~ 20/08/31), 101 (~ 20/12/14), 84 (~ 21/03/20) countries respectively.
+
+
+
+KOR_data <- read.csv("result/segmented_Logistic_result.csv") %>%
+  filter(X == "KOR")
+?dplyr
+
+b = df_result %>% filter(country=="KOR") %>% select(6:8)
+y = cumsum(df_sum["KOR"][-c(1:b$first_day),])
+x = 1:length(y)
+
+plot(x,y,cex=0.5,
+     xlab="Days since 2020-02-21",
+     ylab="Cumulative Cases", 
+     main=" KOR / Logistic",
+     sub="Simple Moving Avarage (window size = 7)") 
+abline(v=b,lty=2)
+legend("topleft",c("data","fit1","fit2","fit3"),
+       pch=c(1,-1,-1,-1),
+       lty=c(0,1,1,1),
+       col=c(1,2,3,4),
+       lwd=c(1,2,2,2))
+
+initial_list = data.frame(a1=KOR_data$a1_Logi, b1=KOR_data$b1_Logi, c1=KOR_data$c1_Logi)
+fit1 <- nls2(y[1:b[[1]]] ~ a1/(1+exp(b1-c1*x[1:b[[1]]])), 
+     start = initial_list,
+     algorithm = "plinear-random",
+     control = nls.control(maxiter=500))
+pred_y = predict(fit1,newdata=data.frame(x))
+lines(1:b$peak1, pred_y, col=2,lwd=3)
+
+initial_list = data.frame(a2=KOR_data$a2_Logi, b2=KOR_data$b2_Logi, c2=KOR_data$c2_Logi)
+fit2 <- nls2(y[b[[1]]:b[[2]]] ~ y[b[[1]]] + a2/(1+exp(b2-c2*x[ b[[1]]:b[[2]] ])), 
+             start = initial_list,
+             algorithm = "plinear-random",
+             control = nls.control(maxiter=500))
+pred_y = predict(fit2)
+
+lines(b$peak1:b$peak2, pred_y + (y[b[[1]]]-pred_y[1]), col=3,lwd=3)
+
+lines(pred_y, col=3,lwd=3)
+
+initial_list = data.frame(a3=KOR_data$a3_Logi, b3=KOR_data$b3_Logi, c3=KOR_data$c3_Logi)
+fit3 <- nls2(y[b[[2]]:b[[3]]] ~ a3/(1+exp(b3-c3*x[b[[2]]:b[[3]]])), 
+             start = initial_list,
+             algorithm = "plinear-random",
+             control = nls.control(maxiter=500))
+pred_y = predict(fit3, new)
+lines(x3+(b[3]-1), pred_y, col=4,lwd=3)
+
+
+lines(1:177,  a2/(1+exp(b2-c2*x[ b[[1]]:b[[2]] ])))
