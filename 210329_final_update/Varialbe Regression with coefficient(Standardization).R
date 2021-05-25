@@ -2,6 +2,7 @@
 library(dplyr)
 library(ggplot2)
 library(forcats)
+library(ggtext)
 
 # Path
 getwd()
@@ -155,6 +156,43 @@ for(Y_list in list(Y_list1,Y_list2,Y_list3)){
   }
 }
 
+df_sum1_ <- df_sum1[-seq(2, 93, 3),]
+a <- data.frame(matrix(NA, nrow=31, ncol=6))
+for (i in 1:31) {
+  for (j in 4:9){
+    a[i,j-3] <- paste0(substr(df_sum1_[2*i - 1, j], 1,13), " (", substr(df_sum1_[2*i,j], 1, 6), ")")
+  }
+}
+a <- cbind(size=df_sum1$X.Samples[seq(2, 93, 3)], factor=df_sum1$Explanatory[seq(2, 93, 3)], a)
+a <- a %>% select(1,2,3,6,4,7,5,8)
+colnames(a) <- c("size", "factor", "a1_logi", "a1_gom","b1_logi", "b1_gom","c1_logi", "c1_gom" )
+
+
+df_sum2_ <- df_sum2[-seq(2, 93, 3),]
+b <- data.frame(matrix(NA, nrow=31, ncol=6))
+for (i in 1:31) {
+  for (j in 4:9){
+    b[i,j-3] <- paste0(substr(df_sum2_[2*i - 1, j], 1,13), " (", substr(df_sum2_[2*i,j], 1, 6), ")")
+  }
+}
+b <- cbind(size=df_sum2$X.Samples[seq(2, 93, 3)], factor=df_sum2$Explanatory[seq(2, 93, 3)], b)
+b <- b %>% select(1,2,3,6,4,7,5,8)
+colnames(b) <- c("size", "factor", "a2_logi", "a2_gom","b2_logi", "b2_gom","c2_logi", "c2_gom" )
+
+df_sum3_ <- df_sum3[-seq(2, 93, 3),]
+c <- data.frame(matrix(NA, nrow=31, ncol=6))
+for (i in 1:31) {
+  for (j in 4:9){
+    c[i,j-3] <- paste0(substr(df_sum3_[2*i - 1, j], 1,13), " (", substr(df_sum3_[2*i,j], 1, 6), ")")
+  }
+}
+c <- cbind(size=df_sum3$X.Samples[seq(2, 93, 3)], factor=df_sum3$Explanatory[seq(2, 93, 3)], c)
+c <- c %>% select(1,2,3,6,4,7,5,8)
+colnames(c) <- c("size", "factor", "a3_logi", "a3_gom","b3_logi", "b3_gom","c3_logi", "c3_gom" )
+
+write.csv(a, "seg1.csv")
+write.csv(b, "seg2.csv")
+write.csv(c, "seg3.csv")
 
 
 #### Write result #### 
@@ -182,6 +220,7 @@ significant_SLR_c <- na.omit(significant_SLR_seg[,c(1,seq(4,19,3))])
 coef_name <- c("a_Logi", "b_Logi", "c_Logi",
                "a_Gom", "b_Gom", "c_Gom")
 for (i in 4:6){
+  i=6
   df_Logi <- data.frame(
     Explanatory = factor(unique(df_sum1$Explanatory)),
     coefficient = c(df_sum1[,i][which((1:nrow(df_sum1))%%3==1)], 
@@ -199,11 +238,11 @@ for (i in 4:6){
   
   
   # volcano plot
-  vol_plot <- ggplot(df_Logi, aes(x=coefficient, y=p.value,
+  vol_plot <- ggplot(df_Logi, aes(x=coefficient, y=-log(p.value),
                         group=Explanatory, color=category)) +
     geom_point(aes(shape=segment)) +
     geom_line() +
-    labs(x="coefficient", y="p-value", 
+    labs(x="coefficient", y="-log(p.value)", 
          title=paste0("SLR Volcano Plot for ", coef_name[i-3])) +
     theme_classic() +
     theme(plot.title=element_text(size=15, hjust=0.5, face="bold", vjust=2))
@@ -212,23 +251,45 @@ for (i in 4:6){
   # bar plot
   bar_plot <- ggplot(df_Logi %>%
            mutate(Explanatory = fct_reorder(Explanatory, desc(category))),
-         aes(x=Explanatory, y=p.value, fill=segment, label=category)) +
+         aes(x=Explanatory, y=-log(p.value), fill=segment, label=category)) +
     geom_bar(stat="identity", position="dodge") +
-    geom_text(position=position_dodge(width = 0), aes(x=Explanatory, y=1)) +
-    geom_hline(yintercept=0.05, color = 1, size=1, linetype=8) +
-    labs(x="", title=paste0("SLR Bar Plot for ", coef_name[i-3])) +
+    geom_hline(yintercept=-log(0.05), color = 2, size=0.5, linetype=3) +
+    labs(x="National Factors", title = "P-value of *&theta;*<sub>1</sub> of *&gamma;* ~ National Factors(Logistic)") +
     coord_flip() +
     scale_fill_manual(values=c("#E69F00", "#56B4E9", "#DD07E0")) +
     # scale_fill_hue(l=70, c=100) +
     theme_classic() +
-    theme(plot.title=element_text(size=15, hjust=0.5, face="bold", vjust=2))
+    theme(
+      plot.title= element_markdown(size=10, hjust=0.5, vjust=2, face="bold"),
+      legend.title = element_text(face="bold", size=10),
+      legend.text = element_text(size=8)
+      )
   ggsave(paste0(plot_path, coef_name[i-3],"_bar_plot.png"), plot = bar_plot)
 }
 
+set.seed(20)
+df <- data.frame(d13C = rnorm(20, -23, 5),
+                 DIC = rnorm(20, 4, 0.2),
+                 d13CDIC = rnorm(20, -8, 2))
+
+ggplot(df, aes(x = d13C, y = d13CDIC)) +
+  geom_point(aes(fill = DIC), pch = 21, cex = 5) + 
+  labs(
+    x = "*&delta;*<sup>13</sup>C (&permil; VPDB)",
+    y = "*&delta;*<sup>13</sup>C<sub>DIC</sub> (&permil; VPDB)",
+    title = "*&theta;*<sub>1</sub>"
+  ) +
+  theme_bw() +
+  theme(
+    axis.title.x = element_markdown(),
+    axis.title.y = element_markdown(),
+    plot.title = element_markdown()
+  )
 
 
 ## Gompertz Model
 for (i in 7:9){
+  i=7
   df_Gomp <- data.frame(
     Explanatory = factor(unique(df_sum1$Explanatory)),
     coefficient = c(df_sum1[,i][which((1:nrow(df_sum1))%%3==1)], 
@@ -246,7 +307,7 @@ for (i in 7:9){
   
   
   # volcano plot
-  vol_plot <- ggplot(df_Gomp, aes(x=coefficient, y=p.value,
+  vol_plot <- ggplot(df_Gomp, aes(x=coefficient, y=-log(p.value),
                                   group=Explanatory, color=category)) +
     geom_point(aes(shape=segment)) +
     geom_line() +
@@ -259,15 +320,18 @@ for (i in 7:9){
   # bar plot
   bar_plot <- ggplot(df_Gomp %>%
                        mutate(Explanatory = fct_reorder(Explanatory, desc(category))),
-                     aes(x=Explanatory, y=p.value, fill=segment, label=category)) +
+                     aes(x=Explanatory, y=-log(p.value), fill=segment, label=category)) +
     geom_bar(stat="identity", position="dodge") +
-    geom_text(position=position_dodge(width = 0), aes(x=Explanatory, y=1)) +
-    geom_hline(yintercept=0.05, color = 1, size=1, linetype=8) +
-    labs(x="", title=paste0("SLR Bar Plot for ", coef_name[i-3])) +
+    geom_hline(yintercept=-log(0.05), color = 2, size=0.5, linetype=3) +
+    labs(x="National Factors", title = "P-value of *&theta;*<sub>1</sub> of *&alpha;* ~ National Factors(Gompertz)") +
     coord_flip() +
     scale_fill_manual(values=c("#E69F00", "#56B4E9", "#DD07E0")) +
     # scale_fill_hue(l=70, c=100) +
     theme_classic() +
-    theme(plot.title=element_text(size=15, hjust=0.5, face="bold", vjust=2))
+    theme(
+      plot.title= element_markdown(size=10, hjust=0.5, vjust=2, face="bold"),
+      legend.title = element_text(face="bold", size=10),
+      legend.text = element_text(size=8)
+    )
   ggsave(paste0(plot_path, coef_name[i-3],"_bar_plot.png"), plot = bar_plot)
 }

@@ -9,7 +9,7 @@ max_date <- set_date("2021/03/20")
 #### Importing Data #### 
 # Importing daily confirmed cases data
 getwd()
-setwd("/Users/yeonghyeonko/Documents/GitHub/COVID-19/210324_update_date/")
+setwd("/Users/yeonghyeonko/Documents/GitHub/COVID-19/210329_final_update/")
 df <- read.csv("data/OxCGRT_210320.csv")
 
 #### Data Preprocessing & Segmentation ####
@@ -18,6 +18,23 @@ country <- as.character(unique(df$CountryCode))
 
 # Preprocess data by country
 df_sum = preprocessing_data()[0:max_date+1,]
+
+
+
+dfdf <- data.frame(1:(ncol(df_sum)-1), apply(df_sum[,-1], 2, sum))
+colnames(dfdf) <- c("country", "sum")
+
+dfdf[,1] <- rownames(dfdf)
+
+left_join(df_result, 
+          dfdf,
+          by="country")
+
+
+write.csv(left_join(df_result, 
+                    dfdf,
+                    by="country"),
+          "asdf.csv")
 
 # Segmentation
 df_result = segmentation(Country = country,
@@ -154,9 +171,9 @@ country_Logi = rownames(coef_seg_Logi)[which(coef_seg_Logi$MSSE<=0.4)]
 sum(!is.na(coef_seg_Logi$a1_Logi)) # the number of fitted countries (134)
 # ( ~ 20/08/31) among 134 countries, 124 countries are fitted and 119 countries are remained by msse ( <= 0.4 )
 # ( ~ 20/12/14) among 154 countries, 118 countries are fitted and 101 countries are remained by msse ( <= 0.4 )
-# ( ~ 21/12/14) among 156 countries, 134 countries are fitted and 98 countries are remained by msse ( <= 0.4 )
+# ( ~ 21/03/20) among 156 countries, 134 countries are fitted and 98 countries are remained by msse ( <= 0.4 )
 
-# Final result is 119 (~ 20/08/31), 101 (~ 20/12/14), 114 (~ 21/03/20) countries respectively.
+# Final result is 119 (~ 20/08/31), 101 (~ 20/12/14), 98 (~ 21/03/20) countries respectively.
 
 
 
